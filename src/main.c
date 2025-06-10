@@ -11,7 +11,9 @@ snz_Arena main_lifetimeArena = { 0 };
 
 snzr_FrameBuffer main_sceneFrameBuffer = { 0 };
 
+gm_CelestialSlice main_celestials = { 0 };
 gm_Celestial* main_rootCelestial = NULL;
+gm_Celestial* main_targetCelestial = NULL;
 
 void main_init(snz_Arena* scratch, SDL_Window* window) {
     SNZ_ASSERT(window || !window, "???");
@@ -24,13 +26,15 @@ void main_init(snz_Arena* scratch, SDL_Window* window) {
 
     ui_init(&main_fontArena, scratch);
 
-    gm_Celestial* sol = gm_celestialInit(&main_lifetimeArena, "Sol", NULL, 0, 0, 0, 1, HMM_V4(1, 1, 0, 1));
+    SNZ_ARENA_ARR_BEGIN(&main_lifetimeArena, gm_Celestial);
+    // name, parent, orbit radius, orbit time, orbit offset, size, color
+    gm_Celestial* sol = gm_celestialInit(&main_lifetimeArena, "Sol", NULL, 80, 0, 0, 1, HMM_V4(1, 1, 0, 1));
     main_rootCelestial = sol;
-    //                                    name, parent, orbit radius, orbit time, orbit offset, size, color
     gm_celestialInit(&main_lifetimeArena, "Doppler", sol, 10, 45, 0, .25, HMM_V4(.7, 1, 0, 1));
     gm_Celestial* cassiopea = gm_celestialInit(&main_lifetimeArena, "Cassiopea", sol, 20, 60, .3, 1, HMM_V4(1, 1, 0, 1));
     gm_celestialInit(&main_lifetimeArena, "Cassi", cassiopea, 1.5, 10, 0, 0.25, HMM_V4(0.7, 0.7, 0.7, 1));
     gm_celestialInit(&main_lifetimeArena, "Artemis", sol, 40, 120, 4.5, 2, HMM_V4(0, .6, .7, 1));
+    main_celestials = SNZ_ARENA_ARR_END(&main_lifetimeArena, gm_Celestial);
 }
 
 void main_loop(float dt, snz_Arena* frameArena, snzu_Input og_frameInputs, HMM_Vec2 og_screenSize) {
@@ -46,7 +50,6 @@ void main_loop(float dt, snz_Arena* frameArena, snzu_Input og_frameInputs, HMM_V
         snzu_boxFillParent();
         snzu_boxSetSizeFromEndAx(SNZU_AX_X, og_screenSize.X - leftBarWidth); // FIXME: size remaining fn
         {
-
             HMM_Vec2 size = snzu_boxGetSize();
             if (main_sceneFrameBuffer.texture.width != size.X ||
                 main_sceneFrameBuffer.texture.height != size.Y) {
@@ -57,6 +60,18 @@ void main_loop(float dt, snz_Arena* frameArena, snzu_Input og_frameInputs, HMM_V
                 main_sceneFrameBuffer = snzr_frameBufferInit(t);
             }
             snzu_boxSetTexture(main_sceneFrameBuffer.texture);
+
+            snzu_Interaction* inter = SNZU_USE_MEM(snzu_Interaction, "inter");
+            snzu_boxSetInteractionOutput(inter, SNZU_IF_MOUSE_BUTTONS | SNZU_IF_MOUSE_SCROLL);
+
+            if (snzu_isNothingFocused()) {
+                char inputChar = inter->keyChars[0];
+                int idx = inputChar - '0';
+                if (idx > 0 && idx < main_celestials.count) { // FIXME: what happens when we have more than 10
+                    SNZ_ASSERT(idx <= 9, "Keypress to select planet was past 9");
+                    main_targetCelestial = &main_celestials.elems[idx - 1];
+                }
+            }
         }
 
         snzu_boxNew("left bar");
@@ -78,22 +93,38 @@ void main_loop(float dt, snz_Arena* frameArena, snzu_Input og_frameInputs, HMM_V
     }
 
     {
-        float* const height = SNZU_USE_MEM(float, "cameraHeight");
-        *height = 60;
-        // HMM_Vec2* const position = SNZU_USE_MEM(HMM_Vec2, "cameraPos");
+        float* const cameraHeight = SNZU_USE_MEM(float, "cameraHeight");
+        if (snzu_useMemIsPrevNew()) {
+            *cameraHeight = 70;
+        }
+        HMM_Vec2* const cameraPosition = SNZU_USE_MEM(HMM_Vec2, "cameraPos");
+
+        HMM_Vec2 targetPosition = HMM_V2(0, 0);
+        float targetHeight = 70;
+        if (main_targetCelestial) {
+            targetPosition = main_targetCelestial->currentPosition;
+            targetHeight = main_targetCelestial->orbitRadius;
+            float added = main_targetCelestial->surfaceRadius;
+            if (main_targetCelestial->parent) {
+                added += main_targetCelestial->parent->surfaceRadius;
+            }
+            targetHeight += 1.5 * added;
+        }
+        *cameraHeight = HMM_Lerp(*cameraHeight, 0.2, targetHeight);
+        *cameraPosition = HMM_Lerp(*cameraPosition, 0.2, targetPosition);
 
         HMM_Vec2 fbSize = HMM_V2(main_sceneFrameBuffer.texture.width, main_sceneFrameBuffer.texture.height);
         float aspect = fbSize.X / fbSize.Y;
-        float halfHeight = *height / 2;
+        float halfHeight = *cameraHeight / 2;
 
         HMM_Mat4 cameraVP = HMM_Orthographic_RH_NO(-aspect * halfHeight, aspect * halfHeight, -halfHeight, halfHeight, 0.0001, 100000);
-        // cameraVP = HMM_Mul(cameraVP, HMM_Translate(HMM_V3(-position->X, -position->Y, 1)));
+        cameraVP = HMM_Mul(cameraVP, HMM_Translate(HMM_V3(-cameraPosition->X, -cameraPosition->Y, 0)));
 
         snzr_callGLFnOrError(glBindFramebuffer(GL_FRAMEBUFFER, main_sceneFrameBuffer.glId));
         snzr_callGLFnOrError(glViewport(0, 0, fbSize.X, fbSize.Y));
         snzr_callGLFnOrError(glClearColor(ui_colorBackground.X, ui_colorBackground.Y, ui_colorBackground.Z, ui_colorBackground.W));
         snzr_callGLFnOrError(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
-        gm_celestialDraw(main_rootCelestial, cameraVP, frameArena);
+        gm_celestialBuild(main_rootCelestial, cameraVP, frameArena);
         snzr_callGLFnOrError(glBindFramebuffer(GL_FRAMEBUFFER, 0));
         snzr_callGLFnOrError(glViewport(0, 0, og_screenSize.X, og_screenSize.Y)); // FIXME: AHHHHHHHHHHH HAVE FRAME DRAW SET VIEPORT WHY DIDN"T U DO THAT BEFORE
     }

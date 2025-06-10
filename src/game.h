@@ -20,6 +20,8 @@ struct gm_Celestial {
     HMM_Vec2 currentPosition;
 };
 
+SNZ_SLICE(gm_Celestial);
+
 gm_Celestial* gm_celestialInit(snz_Arena* arena, const char* name, gm_Celestial* parent, float orbitRadius, float orbitTime, float orbitStartOffset, float surfaceRadius, HMM_Vec4 color) {
     gm_Celestial* c = SNZ_ARENA_PUSH(arena, gm_Celestial);
     c->name = name;
@@ -60,7 +62,8 @@ void gm_celestialUpdate(gm_Celestial* body, float time) {
 void gm_orbitLineDraw(HMM_Vec2 origin, float radius, HMM_Mat4 vp, snz_Arena* scratch) {
     HMM_Vec4Slice points = SNZ_ARENA_PUSH_SLICE(scratch, 256, HMM_Vec4);
     for (int i = 0; i < points.count; i++) {
-        points.elems[i].XY = HMM_RotateV2(HMM_V2(1, 0), i * (2 * HMM_PI / (points.count - 1))); // minus one to close the loop
+        float angle = i * (2 * HMM_PI / (points.count - 1));  // minus one to close the loop
+        points.elems[i].XY = HMM_RotateV2(HMM_V2(1, 0), angle);
     }
     HMM_Mat4 model = HMM_Scale(HMM_V3(radius, radius, radius));
     model = HMM_Mul(HMM_Translate(HMM_V3(origin.X, origin.Y, 0)), model);
@@ -68,7 +71,7 @@ void gm_orbitLineDraw(HMM_Vec2 origin, float radius, HMM_Mat4 vp, snz_Arena* scr
     snzr_drawLine(points.elems, points.count, ui_colorOrbit, ui_thicknessOrbit, mvp);
 }
 
-void gm_celestialDraw(gm_Celestial* parent, HMM_Mat4 vp, snz_Arena* scratch) {
+void gm_celestialBuild(gm_Celestial* parent, HMM_Mat4 vp, snz_Arena* scratch) {
     snzr_drawRect(
         HMM_Sub(parent->currentPosition, HMM_V2(parent->surfaceRadius, parent->surfaceRadius)),
         HMM_Add(parent->currentPosition, HMM_V2(parent->surfaceRadius, parent->surfaceRadius)),
@@ -84,6 +87,6 @@ void gm_celestialDraw(gm_Celestial* parent, HMM_Mat4 vp, snz_Arena* scratch) {
 
     for (gm_Celestial* child = parent->firstChild; child; child = child->nextSibling) {
         gm_orbitLineDraw(parent->currentPosition, child->orbitRadius, vp, scratch);
-        gm_celestialDraw(child, vp, scratch);
+        gm_celestialBuild(child, vp, scratch);
     }
 }
