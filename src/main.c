@@ -136,10 +136,19 @@ void main_loop(float dt, snz_Arena* frameArena, snzu_Input og_frameInputs, HMM_V
                     gm_Celestial* c = &main_celestials.elems[i];
                     // main box acts as padding
                     snzu_boxNewF("%i", i);
+                    snzu_Interaction* inter = SNZU_USE_MEM(snzu_Interaction, "inter");
+                    snzu_boxSetInteractionOutput(inter, SNZU_IF_MOUSE_BUTTONS | SNZU_IF_HOVER);
+
+                    if (inter->mouseActions[SNZU_MB_LEFT] == SNZU_ACT_DOWN) { // FIXME: techinically wrong, happening late in the frame
+                        main_targetCelestial = c;
+                    }
+
                     float* const targetedAnim = SNZU_USE_MEM(float, "targeted");
                     snzu_easeExp(targetedAnim, c == main_targetCelestial, 20);
-                    float planetSize = (c->surfaceRadius * 120) + (50 * *targetedAnim);
-                    float paddedSize = planetSize + 20 + (20 * *targetedAnim);
+                    float animVal = *targetedAnim + .25 * ui_hoverAnim(inter);
+                    float planetSize = (c->surfaceRadius * 120) + (50 * animVal);
+                    float paddedSize = planetSize + 20 + (20 * animVal);
+
                     snzu_boxSetSizeFromStart(HMM_V2(paddedSize, paddedSize));
                     snzu_boxScope() {
                         snzu_boxNew("planet");
@@ -147,11 +156,11 @@ void main_loop(float dt, snz_Arena* frameArena, snzu_Input og_frameInputs, HMM_V
                         snzu_boxSetSizeFromStart(HMM_V2(planetSize, planetSize));
                         snzu_boxAlignInParent(SNZU_AX_X, SNZU_ALIGN_CENTER);
                         snzu_boxAlignInParent(SNZU_AX_Y, SNZU_ALIGN_CENTER);
-                        snzu_boxMoveKeepSizeRecurse(HMM_V2(planetSize * 0.75 * *targetedAnim, 0));
+                        snzu_boxMoveKeepSizeRecurse(HMM_V2(planetSize * 0.75 * animVal, 0));
 
                         snzu_boxNew("title");
                         snzu_boxSetDisplayStr(&ui_labelFont, ui_colorText, c->name);
-                        snzu_boxSetSizeFitText(10 + (20 * *targetedAnim));
+                        snzu_boxSetSizeFitText(10 + (20 * animVal));
                         snzu_boxAlignOuter(snzu_getSelectedBox()->prevSibling, SNZU_AX_X, SNZU_ALIGN_RIGHT);
                         snzu_boxAlignInParent(SNZU_AX_Y, SNZU_ALIGN_CENTER);
                     } // end per planet padding
