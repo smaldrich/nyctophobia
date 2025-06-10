@@ -30,6 +30,7 @@ void main_init(snz_Arena* scratch, SDL_Window* window) {
     // name, parent, orbit radius, orbit time, orbit offset, size, color
     gm_Celestial* sol = gm_celestialInit(&main_lifetimeArena, "Sol", NULL, 80, 0, 0, 1, HMM_V4(1, 1, 0, 1));
     main_rootCelestial = sol;
+    main_targetCelestial = sol;
     gm_celestialInit(&main_lifetimeArena, "Doppler", sol, 10, 45, 0, .25, HMM_V4(.7, 1, 0, 1));
     gm_Celestial* cassiopea = gm_celestialInit(&main_lifetimeArena, "Cassiopea", sol, 20, 60, .3, 1, HMM_V4(1, 1, 0, 1));
     gm_celestialInit(&main_lifetimeArena, "Cassi", cassiopea, 1.5, 10, 0, 0.25, HMM_V4(0.7, 0.7, 0.7, 1));
@@ -44,7 +45,7 @@ void main_loop(float dt, snz_Arena* frameArena, snzu_Input og_frameInputs, HMM_V
     snzu_boxFillParent();
     snzu_boxSetColor(HMM_V4(0, 1, 0, 1));
     snzu_boxScope() {
-        float leftBarWidth = 75;
+        float leftBarWidth = 100;
 
         snzu_boxNew("main scene");
         snzu_boxFillParent();
@@ -67,7 +68,7 @@ void main_loop(float dt, snz_Arena* frameArena, snzu_Input og_frameInputs, HMM_V
             if (snzu_isNothingFocused()) {
                 char inputChar = inter->keyChars[0];
                 int idx = inputChar - '0';
-                if (idx > 0 && idx < main_celestials.count) { // FIXME: what happens when we have more than 10
+                if (idx > 0 && idx <= main_celestials.count) { // FIXME: what happens when we have more than 10
                     SNZ_ASSERT(idx <= 9, "Keypress to select planet was past 9");
                     main_targetCelestial = &main_celestials.elems[idx - 1];
                 }
@@ -78,12 +79,55 @@ void main_loop(float dt, snz_Arena* frameArena, snzu_Input og_frameInputs, HMM_V
         snzu_boxFillParent();
         snzu_boxSetSizeFromStartAx(SNZU_AX_X, leftBarWidth);
         snzu_boxSetColor(ui_colorBackground);
+        snzu_boxScope() {
+            snzu_boxNew("line");
+            snzu_boxFillParent();
+            snzu_boxAlignInParent(SNZU_AX_X, SNZU_ALIGN_RIGHT);
+            snzu_boxSetSizeFromEndAx(SNZU_AX_X, ui_thicknessUiLines);
+            snzu_boxSetColor(ui_colorText);
 
-        snzu_boxNew("leftBarBorder");
-        snzu_boxSetSizeMarginFromParentAx(0, SNZU_AX_Y);
-        snzu_boxSetStartAx(leftBarWidth - ui_thicknessUiLines, SNZU_AX_X);
-        snzu_boxSetSizeFromStartAx(SNZU_AX_X, ui_thicknessUiLines);
-        snzu_boxSetColor(ui_colorText);
+            float verticalPadding = 50;
+
+            snzu_boxNew("offset");
+            snzu_boxFillParent();
+            snzu_boxSetStartFromParentAx(verticalPadding, SNZU_AX_Y);
+            snzu_boxSetSizePctParent(2, SNZU_AX_X);
+            snzu_boxScope() {
+                for (int i = 0; i < main_celestials.count; i++) {
+                    gm_Celestial* c = &main_celestials.elems[i];
+                    snzu_boxNewF("%i", i);
+                    float size = c->surfaceRadius * 120;
+                    snzu_boxSetSizeFromStart(HMM_V2(size, size));
+                    snzu_boxSetColor(c->color);
+                    snzu_boxScope() {
+                        snzu_boxNew("title");
+                        snzu_boxSetDisplayStr(&ui_labelFont, ui_colorText, c->name);
+                        snzu_boxSetSizeFitText(10);
+                        snzu_boxAlignOuter(snzu_boxGetParent(snzu_getSelectedBox()), SNZU_AX_X, SNZU_ALIGN_RIGHT);
+                        snzu_boxAlignInParent(SNZU_AX_Y, SNZU_ALIGN_CENTER);
+                    }
+                    snzu_boxNewF("%i_pad", i);
+                    snzu_boxSetSizeFromStartAx(SNZU_AX_Y, c->surfaceRadius * 10 + 20);
+                }
+                snzu_boxOrderSiblingsInRowRecurse(0, SNZU_AX_Y, SNZU_ALIGN_CENTER);
+                // FIXME: add a gradient fading out the planets to the left
+
+                snzu_boxNew("menu");
+                snzu_boxSetEndFromParentEnd(HMM_V2(0, -verticalPadding));
+                snzu_boxSetSizeFromEnd(HMM_V2(120, 120));
+                snzu_boxAlignInParent(SNZU_AX_X, SNZU_ALIGN_CENTER);
+                {
+                    snzu_boxSetDisplayStr(&ui_labelFont, ui_colorText, "quit");
+                    snzu_boxSetColor(ui_colorBackground);
+                    snzu_boxSetBorder(ui_thicknessUiLines, ui_colorText);
+                    snzu_Interaction* const inter = SNZU_USE_MEM(snzu_Interaction, "inter");
+                    snzu_boxSetInteractionOutput(inter, SNZU_IF_MOUSE_BUTTONS | SNZU_IF_HOVER | SNZU_IF_MOUSE_SCROLL);
+                    if (inter->mouseActions[SNZU_MB_LEFT] == SNZU_ACT_UP) {
+                        snz_quit();
+                    }
+                }
+            } // end offset to center lists on line
+        } // end left bar
     }
 
     { // game update
@@ -95,7 +139,7 @@ void main_loop(float dt, snz_Arena* frameArena, snzu_Input og_frameInputs, HMM_V
     {
         float* const cameraHeight = SNZU_USE_MEM(float, "cameraHeight");
         if (snzu_useMemIsPrevNew()) {
-            *cameraHeight = 70;
+            *cameraHeight = 300;
         }
         HMM_Vec2* const cameraPosition = SNZU_USE_MEM(HMM_Vec2, "cameraPos");
 
@@ -103,12 +147,7 @@ void main_loop(float dt, snz_Arena* frameArena, snzu_Input og_frameInputs, HMM_V
         float targetHeight = 70;
         if (main_targetCelestial) {
             targetPosition = main_targetCelestial->currentPosition;
-            targetHeight = main_targetCelestial->orbitRadius;
-            float added = main_targetCelestial->surfaceRadius;
-            if (main_targetCelestial->parent) {
-                added += main_targetCelestial->parent->surfaceRadius;
-            }
-            targetHeight += 1.5 * added;
+            targetHeight = 1.5 * main_targetCelestial->orbitRadius;
         }
         *cameraHeight = HMM_Lerp(*cameraHeight, 0.2, targetHeight);
         *cameraPosition = HMM_Lerp(*cameraPosition, 0.2, targetPosition);
