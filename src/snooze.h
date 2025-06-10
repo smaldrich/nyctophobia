@@ -137,6 +137,12 @@ typedef struct {
 // returns a pointer to memory that is zeroed
 #define SNZ_ARENA_PUSH_ARR(bump, count, T) (T*)(snz_arenaPush((bump), sizeof(T), count))
 
+#define SNZ_ARENA_PUSH_SLICE(bump, num, T) \
+    (T##Slice) { \
+        .elems = (snz_arenaPush((bump), sizeof(T), (num))), \
+        .count = (num), \
+    } \
+
 snz_Arena snz_arenaInit(int64_t size, const char* name) {
     snz_Arena a = { 0 };
     a.name = name;
@@ -1633,7 +1639,7 @@ void snzu_boxFillParent() {
 }
 
 // FIXME: setSize
-void snzu_boxSizePctParent(float pct, snzu_Axis ax) {
+void snzu_boxSetSizePctParent(float pct, snzu_Axis ax) {
     HMM_Vec2 newSize = snzu_boxGetSizePtr(_snzu_instance->selectedBox->parent);
     snzu_boxSetSizeFromStartAx(ax, newSize.Elements[ax] * pct);
 }

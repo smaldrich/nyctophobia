@@ -5,10 +5,14 @@
 
 snzr_Font ui_labelFont = { 0 };
 
+HMM_Vec4 ui_colorOrbit = { 0 };
+float ui_thicknessOrbit = 1;
+
 HMM_Vec4 ui_colorText = { 0 };
 HMM_Vec4 ui_colorAccent = { 0 };
 HMM_Vec4 ui_colorBackground = { 0 };
-float ui_borderThickness = 2.0f;
+
+float ui_thicknessUiLines = 2.0f;
 float ui_padding = 5;
 
 // loads in RGBA, asserts on failue.
@@ -29,7 +33,7 @@ void ui_init(snz_Arena* fontArena, snz_Arena* scratch) {
 
     ui_colorText = HMM_V4(0.8, 0.8, 0.8, 1.0f);
     ui_colorAccent = HMM_V4(0.18, 0.20, 0.4, 1.0f);
-    ui_colorBackground = HMM_V4(0.2, 0.2, 0.3, 1.0f);
+    ui_colorBackground = HMM_V4(0.01, 0.015, 0.03, 1.0f);
 }
 
 // new box with default name, fit to default styled text
@@ -65,7 +69,7 @@ bool ui_buttonWithHighlight(bool selected, const char* name) {
         snzu_boxSetColor(ui_colorAccent);
         snzu_boxFillParent();
         snzu_boxSizeFromEndPctParent(0.3, SNZU_AX_Y);
-        snzu_boxSizePctParent(*selectedAnim * 0.6, SNZU_AX_X);
+        snzu_boxSetSizePctParent(*selectedAnim * 0.6, SNZU_AX_X);
 
         snzu_boxNew("text");
         snzu_boxSetStartFromParentKeepSizeRecurse(HMM_V2((*hoverAnim + *selectedAnim) * 10, 0));
@@ -96,7 +100,7 @@ void ui_dropdown(const char* boxTag, const char** optionStrings, int stringCount
     snzu_easeExp(&d->openAnim, snzu_boxFocused(), 30);
     // snzu_easeExp(&d->hoverAnim, d->inter->hovered || snzu_boxFocused(), 20);
 
-    snzu_boxSetBorder(ui_borderThickness, ui_colorText);
+    snzu_boxSetBorder(ui_thicknessUiLines, ui_colorText);
     snzu_boxSetColor(ui_colorBackground);
     const char* placeholderSizingString = "AHHHHHHHHHH";
     HMM_Vec2 cellSize = snzr_strSize(&ui_labelFont, placeholderSizingString, strlen(placeholderSizingString), ui_labelFont.renderedSize);
@@ -122,7 +126,7 @@ void ui_dropdown(const char* boxTag, const char** optionStrings, int stringCount
                         *selectedIndex = i;
                     }
                     snzu_boxNewF("spacer %d", i);
-                    snzu_boxSizePctParent(1.0, SNZU_AX_X);
+                    snzu_boxSetSizePctParent(1.0, SNZU_AX_X);
                     snzu_boxSetSizeFromStartAx(SNZU_AX_Y, 1);
                     snzu_boxSetColor(ui_colorText);
                 }
@@ -139,11 +143,11 @@ void ui_dropdown(const char* boxTag, const char** optionStrings, int stringCount
 
 void ui_hiddenPanelIndicator(float startingX, bool placeToTheRight, const char* boxTag) {
     snzu_boxNew(boxTag);
-    float offset = (placeToTheRight ? 2 * ui_borderThickness : -3 * ui_borderThickness);
+    float offset = (placeToTheRight ? 2 * ui_thicknessUiLines : -3 * ui_thicknessUiLines);
     snzu_boxSetColor(ui_colorText);
-    snzu_boxSetCornerRadius(ui_borderThickness / 2 + 1);
+    snzu_boxSetCornerRadius(ui_thicknessUiLines / 2 + 1);
     snzu_boxSetStartAx(startingX + offset, SNZU_AX_X);
-    snzu_boxSetSizeFromStart(HMM_V2(ui_borderThickness, 50));
+    snzu_boxSetSizeFromStart(HMM_V2(ui_thicknessUiLines, 50));
     snzu_boxAlignInParent(SNZU_AX_Y, SNZU_ALIGN_CENTER);
 }
 
@@ -172,7 +176,7 @@ void ui_switch(const char* boxName, bool* const state) {
     }
 
     snzu_boxSetCornerRadius(height / 2);
-    snzu_boxSetBorder(ui_borderThickness, ui_colorText);
+    snzu_boxSetBorder(ui_thicknessUiLines, ui_colorText);
     float* const anim = SNZU_USE_MEM(float, "anim");
     if (snzu_useMemIsPrevNew()) {
         *anim = *state;
