@@ -94,24 +94,28 @@ void main_loop(float dt, snz_Arena* frameArena, snzu_Input og_frameInputs, HMM_V
             snzu_boxSetSizePctParent(2, SNZU_AX_X);
             snzu_boxScope() {
                 for (int i = 0; i < main_celestials.count; i++) {
-                    snzu_boxNewF("%i", i);
-
                     gm_Celestial* c = &main_celestials.elems[i];
+                    // main box acts as padding
+                    snzu_boxNewF("%i", i);
                     float* const targetedAnim = SNZU_USE_MEM(float, "targeted");
                     snzu_easeExp(targetedAnim, c == main_targetCelestial, 20);
-
-                    float size = c->surfaceRadius * 120 + (60 * *targetedAnim);
-                    snzu_boxSetSizeFromStart(HMM_V2(size, size));
-                    snzu_boxSetColor(c->color);
+                    float planetSize = (c->surfaceRadius * 120) + (50 * *targetedAnim);
+                    float paddedSize = planetSize + 20 + (20 * *targetedAnim);
+                    snzu_boxSetSizeFromStart(HMM_V2(paddedSize, paddedSize));
                     snzu_boxScope() {
+                        snzu_boxNew("planet");
+                        snzu_boxSetColor(c->color);
+                        snzu_boxSetSizeFromStart(HMM_V2(planetSize, planetSize));
+                        snzu_boxAlignInParent(SNZU_AX_X, SNZU_ALIGN_CENTER);
+                        snzu_boxAlignInParent(SNZU_AX_Y, SNZU_ALIGN_CENTER);
+                        snzu_boxMoveKeepSizeRecurse(HMM_V2(planetSize * 0.75 * *targetedAnim, 0));
+
                         snzu_boxNew("title");
                         snzu_boxSetDisplayStr(&ui_labelFont, ui_colorText, c->name);
                         snzu_boxSetSizeFitText(10 + (20 * *targetedAnim));
-                        snzu_boxAlignOuter(snzu_boxGetParent(snzu_getSelectedBox()), SNZU_AX_X, SNZU_ALIGN_RIGHT);
+                        snzu_boxAlignOuter(snzu_getSelectedBox()->prevSibling, SNZU_AX_X, SNZU_ALIGN_RIGHT);
                         snzu_boxAlignInParent(SNZU_AX_Y, SNZU_ALIGN_CENTER);
-                    }
-                    snzu_boxNewF("%i_pad", i);
-                    snzu_boxSetSizeFromStartAx(SNZU_AX_Y, c->surfaceRadius * 10 + 20);
+                    } // end per planet padding
                 }
                 snzu_boxOrderSiblingsInRowRecurse(0, SNZU_AX_Y, SNZU_ALIGN_CENTER);
                 // FIXME: add a gradient fading out the planets to the left
