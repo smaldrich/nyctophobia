@@ -60,7 +60,7 @@ void gm_celestialUpdate(gm_Celestial* body, float time) {
 void gm_orbitLineDraw(HMM_Vec2 origin, float radius, HMM_Mat4 vp, snz_Arena* scratch) {
     HMM_Vec4Slice points = SNZ_ARENA_PUSH_SLICE(scratch, 256, HMM_Vec4);
     for (int i = 0; i < points.count; i++) {
-        points.elems[i].XY = HMM_RotateV2(HMM_V2(1, 0), i * (1.0 / points.count));
+        points.elems[i].XY = HMM_RotateV2(HMM_V2(1, 0), i * (2 * HMM_PI / (points.count - 1))); // minus one to close the loop
     }
     HMM_Mat4 model = HMM_Scale(HMM_V3(radius, radius, radius));
     model = HMM_Mul(HMM_Translate(HMM_V3(origin.X, origin.Y, 0)), model);

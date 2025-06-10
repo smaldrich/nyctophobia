@@ -12,7 +12,7 @@ HMM_Vec4 ui_colorText = { 0 };
 HMM_Vec4 ui_colorAccent = { 0 };
 HMM_Vec4 ui_colorBackground = { 0 };
 
-float ui_thicknessUiLines = 2.0f;
+float ui_thicknessUiLines = 1;
 float ui_padding = 5;
 
 // loads in RGBA, asserts on failue.
@@ -31,8 +31,9 @@ void ui_init(snz_Arena* fontArena, snz_Arena* scratch) {
     stbi_set_flip_vertically_on_load(true);
     ui_labelFont = snzr_fontInit(fontArena, scratch, "res/fonts/AzeretMono-Regular.ttf", 20);
 
-    ui_colorText = HMM_V4(0.8, 0.8, 0.8, 1.0f);
+    ui_colorText = HMM_V4(1, 1, 1, 1);
     ui_colorAccent = HMM_V4(0.18, 0.20, 0.4, 1.0f);
+    ui_colorOrbit = ui_colorText;
     ui_colorBackground = HMM_V4(0.01, 0.015, 0.03, 1.0f);
 }
 

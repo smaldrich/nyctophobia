@@ -40,7 +40,7 @@ void main_loop(float dt, snz_Arena* frameArena, snzu_Input og_frameInputs, HMM_V
     snzu_boxFillParent();
     snzu_boxSetColor(HMM_V4(0, 1, 0, 1));
     snzu_boxScope() {
-        float leftBarWidth = 100;
+        float leftBarWidth = 75;
 
         snzu_boxNew("main scene");
         snzu_boxFillParent();

@@ -1848,7 +1848,8 @@ void snz_main(const char* windowTitle, const char* iconPath, snz_InitFunc initFu
         SNZ_ASSERT(SDL_Init(SDL_INIT_VIDEO) == 0, "sdl initialization failed.");
         SNZ_ASSERT(SDL_GL_LoadLibrary(NULL) == 0, "sdl loading opengl failed.");
         SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 8);
-        uint32_t windowFlags = SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_MAXIMIZED | SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI;
+        uint32_t windowFlags = SDL_WINDOW_SHOWN | SDL_WINDOW_FULLSCREEN_DESKTOP | SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI;
+        // uint32_t windowFlags = SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_MAXIMIZED | SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI;
         window = SDL_CreateWindow(windowTitle, 100, 100, 700, 500, windowFlags);
         SNZ_ASSERT(window, "sdl window creation failed.");
 
@@ -1865,7 +1866,6 @@ void snz_main(const char* windowTitle, const char* iconPath, snz_InitFunc initFu
         SNZ_ASSERT(context, "sdl gl context creation failed");
         SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
         SNZ_ASSERT(renderer, "sdl renderer creation failed");
-
     }
 
     snz_Arena frameArena = snz_arenaInit(1000000000, "snz frame arena");
