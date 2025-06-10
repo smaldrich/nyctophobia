@@ -39,7 +39,6 @@ gm_Celestial* gm_celestialInit(snz_Arena* arena, const char* name, gm_Celestial*
         }
         *ptrToNextPtr = c;
     }
-
     return c;
 }
 
@@ -71,22 +70,29 @@ void gm_orbitLineDraw(HMM_Vec2 origin, float radius, HMM_Mat4 vp, snz_Arena* scr
     snzr_drawLine(points.elems, points.count, ui_colorOrbit, ui_thicknessOrbit, mvp);
 }
 
-void gm_celestialBuild(gm_Celestial* parent, HMM_Mat4 vp, snz_Arena* scratch) {
-    snzr_drawRect(
-        HMM_Sub(parent->currentPosition, HMM_V2(parent->surfaceRadius, parent->surfaceRadius)),
-        HMM_Add(parent->currentPosition, HMM_V2(parent->surfaceRadius, parent->surfaceRadius)),
-        HMM_V2(-INFINITY, -INFINITY),
-        HMM_V2(INFINITY, INFINITY),
-        parent->color,
-        0,
-        0,
-        HMM_V4(0, 0, 0, 0),
-        vp,
-        _snzr_globs.solidTex
-    );
+// expects GL ctx to be on a framebuffer
+// expects a valid snzu_Instance also
+void gm_celestialsBuild(gm_CelestialSlice celestials, _snzu_Box* parentBox, HMM_Mat4 vp, snz_Arena* scratch) {
+    HMM_Vec2 parentStart = parentBox->start;
+    HMM_Vec2 parentSize = snzu_boxGetSizePtr(parentBox);
 
-    for (gm_Celestial* child = parent->firstChild; child; child = child->nextSibling) {
-        gm_orbitLineDraw(parent->currentPosition, child->orbitRadius, vp, scratch);
-        gm_celestialBuild(child, vp, scratch);
+    HMM_Mat4 transform = HMM_Scale(HMM_V3(1, -1, 1)); // flip y axis to go down positive
+    transform = HMM_Mul(HMM_Translate(HMM_V3(1, 1, 0)), transform); // -1 to 1 -> 0 to 2
+    transform = HMM_Mul(HMM_Scale(HMM_V3(0.5 * parentSize.X, 0.5 * parentSize.Y, 1)), transform); // 0 to 2 -> 0 to parentSize
+    transform = HMM_Mul(HMM_Translate(HMM_V3(parentStart.X, parentStart.Y, 0)), transform); // 0 to parentSize -> parentStart to parentEnd
+    transform = HMM_Mul(transform, vp);
+    for (int i = 0; i < celestials.count; i++) {
+        gm_Celestial* c = &celestials.elems[i];
+        snzu_boxNewF("%d", i);
+        HMM_Vec4 position4 = { .W = 1 };
+        position4.XY = c->currentPosition;
+        HMM_Vec4 pt = HMM_Mul(transform, position4);
+        snzu_boxSetStart(pt.XY);
+        snzu_boxSetSizeFromStart(HMM_V2(50, 50));
+        snzu_boxSetColor(c->color);
+
+        for (gm_Celestial* child = c->firstChild; child; child = child->nextSibling) {
+            gm_orbitLineDraw(c->currentPosition, child->orbitRadius, vp, scratch);
+        }
     }
 }

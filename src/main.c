@@ -41,13 +41,20 @@ void main_init(snz_Arena* scratch, SDL_Window* window) {
 void main_loop(float dt, snz_Arena* frameArena, snzu_Input og_frameInputs, HMM_Vec2 og_screenSize) {
     snzu_frameStart(frameArena, og_screenSize, dt);
 
+
     snzu_boxNew("parent");
+    { // game update
+        float* const time = SNZU_USE_MEM(float, "time");
+        *time += dt;
+        gm_celestialUpdate(main_rootCelestial, *time);
+    }
+
     snzu_boxFillParent();
     snzu_boxSetColor(HMM_V4(0, 1, 0, 1));
     snzu_boxScope() {
         float leftBarWidth = 100;
 
-        snzu_boxNew("main scene");
+        _snzu_Box* sceneBox = snzu_boxNew("main scene");
         snzu_boxFillParent();
         snzu_boxSetSizeFromEndAx(SNZU_AX_X, og_screenSize.X - leftBarWidth); // FIXME: size remaining fn
         {
@@ -74,6 +81,38 @@ void main_loop(float dt, snz_Arena* frameArena, snzu_Input og_frameInputs, HMM_V
                 }
             }
         }
+        snzu_boxClipChildren(true);
+        snzu_boxScope() {
+            float* const cameraHeight = SNZU_USE_MEM(float, "cameraHeight");
+            if (snzu_useMemIsPrevNew()) {
+                *cameraHeight = 300;
+            }
+            HMM_Vec2* const cameraPosition = SNZU_USE_MEM(HMM_Vec2, "cameraPos");
+
+            HMM_Vec2 targetPosition = HMM_V2(0, 0);
+            float targetHeight = 70;
+            if (main_targetCelestial) {
+                targetPosition = main_targetCelestial->currentPosition;
+                targetHeight = 1.5 * main_targetCelestial->orbitRadius;
+            }
+            *cameraHeight = HMM_Lerp(*cameraHeight, 0.2, targetHeight);
+            *cameraPosition = HMM_Lerp(*cameraPosition, 0.2, targetPosition);
+
+            HMM_Vec2 fbSize = HMM_V2(main_sceneFrameBuffer.texture.width, main_sceneFrameBuffer.texture.height);
+            float aspect = fbSize.X / fbSize.Y;
+            float halfHeight = *cameraHeight / 2;
+
+            HMM_Mat4 proj = HMM_Orthographic_RH_NO(-aspect * halfHeight, aspect * halfHeight, -halfHeight, halfHeight, 0.0001, 100000);
+            HMM_Mat4 cameraView = HMM_Translate(HMM_V3(-cameraPosition->X, -cameraPosition->Y, 0));
+
+            snzr_callGLFnOrError(glBindFramebuffer(GL_FRAMEBUFFER, main_sceneFrameBuffer.glId));
+            snzr_callGLFnOrError(glViewport(0, 0, fbSize.X, fbSize.Y));
+            snzr_callGLFnOrError(glClearColor(ui_colorBackground.X, ui_colorBackground.Y, ui_colorBackground.Z, ui_colorBackground.W));
+            snzr_callGLFnOrError(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
+            gm_celestialsBuild(main_celestials, sceneBox, HMM_Mul(proj, cameraView), frameArena);
+            snzr_callGLFnOrError(glBindFramebuffer(GL_FRAMEBUFFER, 0));
+            snzr_callGLFnOrError(glViewport(0, 0, og_screenSize.X, og_screenSize.Y)); // FIXME: AHHHHHHHHHHH HAVE FRAME DRAW SET VIEPORT WHY DIDN"T U DO THAT BEFORE
+        } // end main scene
 
         snzu_boxNew("left bar");
         snzu_boxFillParent();
@@ -139,44 +178,6 @@ void main_loop(float dt, snz_Arena* frameArena, snzu_Input og_frameInputs, HMM_V
                 }
             } // end offset to center lists on line
         } // end left bar
-    }
-
-    { // game update
-        float* const time = SNZU_USE_MEM(float, "time");
-        *time += dt;
-        gm_celestialUpdate(main_rootCelestial, *time);
-    }
-
-    {
-        float* const cameraHeight = SNZU_USE_MEM(float, "cameraHeight");
-        if (snzu_useMemIsPrevNew()) {
-            *cameraHeight = 300;
-        }
-        HMM_Vec2* const cameraPosition = SNZU_USE_MEM(HMM_Vec2, "cameraPos");
-
-        HMM_Vec2 targetPosition = HMM_V2(0, 0);
-        float targetHeight = 70;
-        if (main_targetCelestial) {
-            targetPosition = main_targetCelestial->currentPosition;
-            targetHeight = 1.5 * main_targetCelestial->orbitRadius;
-        }
-        *cameraHeight = HMM_Lerp(*cameraHeight, 0.2, targetHeight);
-        *cameraPosition = HMM_Lerp(*cameraPosition, 0.2, targetPosition);
-
-        HMM_Vec2 fbSize = HMM_V2(main_sceneFrameBuffer.texture.width, main_sceneFrameBuffer.texture.height);
-        float aspect = fbSize.X / fbSize.Y;
-        float halfHeight = *cameraHeight / 2;
-
-        HMM_Mat4 cameraVP = HMM_Orthographic_RH_NO(-aspect * halfHeight, aspect * halfHeight, -halfHeight, halfHeight, 0.0001, 100000);
-        cameraVP = HMM_Mul(cameraVP, HMM_Translate(HMM_V3(-cameraPosition->X, -cameraPosition->Y, 0)));
-
-        snzr_callGLFnOrError(glBindFramebuffer(GL_FRAMEBUFFER, main_sceneFrameBuffer.glId));
-        snzr_callGLFnOrError(glViewport(0, 0, fbSize.X, fbSize.Y));
-        snzr_callGLFnOrError(glClearColor(ui_colorBackground.X, ui_colorBackground.Y, ui_colorBackground.Z, ui_colorBackground.W));
-        snzr_callGLFnOrError(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
-        gm_celestialBuild(main_rootCelestial, cameraVP, frameArena);
-        snzr_callGLFnOrError(glBindFramebuffer(GL_FRAMEBUFFER, 0));
-        snzr_callGLFnOrError(glViewport(0, 0, og_screenSize.X, og_screenSize.Y)); // FIXME: AHHHHHHHHHHH HAVE FRAME DRAW SET VIEPORT WHY DIDN"T U DO THAT BEFORE
     }
 
     HMM_Mat4 uiVP = HMM_Orthographic_RH_NO(0, og_screenSize.X, og_screenSize.Y, 0, 0.0001, 100000);
