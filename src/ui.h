@@ -11,6 +11,8 @@ float ui_thicknessOrbit = 1;
 HMM_Vec4 ui_colorText = { 0 };
 HMM_Vec4 ui_colorAccent = { 0 };
 HMM_Vec4 ui_colorBackground = { 0 };
+HMM_Vec4 ui_colorHoveredBackground = { 0 };
+float ui_hoverAnimSpeed = 30;
 
 float ui_thicknessUiLines = 1;
 float ui_padding = 5;
@@ -35,6 +37,7 @@ void ui_init(snz_Arena* fontArena, snz_Arena* scratch) {
     ui_colorAccent = HMM_V4(0.18, 0.20, 0.4, 1.0f);
     ui_colorOrbit = ui_colorText;
     ui_colorBackground = HMM_V4(0.01, 0.015, 0.03, 1.0f);
+    ui_colorHoveredBackground = HMM_V4(0.4, 0.3, 0.07, 1.0f);
 }
 
 // new box with default name, fit to default styled text

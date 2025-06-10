@@ -94,15 +94,19 @@ void main_loop(float dt, snz_Arena* frameArena, snzu_Input og_frameInputs, HMM_V
             snzu_boxSetSizePctParent(2, SNZU_AX_X);
             snzu_boxScope() {
                 for (int i = 0; i < main_celestials.count; i++) {
-                    gm_Celestial* c = &main_celestials.elems[i];
                     snzu_boxNewF("%i", i);
-                    float size = c->surfaceRadius * 120;
+
+                    gm_Celestial* c = &main_celestials.elems[i];
+                    float* const targetedAnim = SNZU_USE_MEM(float, "targeted");
+                    snzu_easeExp(targetedAnim, c == main_targetCelestial, 20);
+
+                    float size = c->surfaceRadius * 120 + (60 * *targetedAnim);
                     snzu_boxSetSizeFromStart(HMM_V2(size, size));
                     snzu_boxSetColor(c->color);
                     snzu_boxScope() {
                         snzu_boxNew("title");
                         snzu_boxSetDisplayStr(&ui_labelFont, ui_colorText, c->name);
-                        snzu_boxSetSizeFitText(10);
+                        snzu_boxSetSizeFitText(10 + (20 * *targetedAnim));
                         snzu_boxAlignOuter(snzu_boxGetParent(snzu_getSelectedBox()), SNZU_AX_X, SNZU_ALIGN_RIGHT);
                         snzu_boxAlignInParent(SNZU_AX_Y, SNZU_ALIGN_CENTER);
                     }
@@ -118,13 +122,16 @@ void main_loop(float dt, snz_Arena* frameArena, snzu_Input og_frameInputs, HMM_V
                 snzu_boxAlignInParent(SNZU_AX_X, SNZU_ALIGN_CENTER);
                 {
                     snzu_boxSetDisplayStr(&ui_labelFont, ui_colorText, "quit");
-                    snzu_boxSetColor(ui_colorBackground);
                     snzu_boxSetBorder(ui_thicknessUiLines, ui_colorText);
                     snzu_Interaction* const inter = SNZU_USE_MEM(snzu_Interaction, "inter");
                     snzu_boxSetInteractionOutput(inter, SNZU_IF_MOUSE_BUTTONS | SNZU_IF_HOVER | SNZU_IF_MOUSE_SCROLL);
                     if (inter->mouseActions[SNZU_MB_LEFT] == SNZU_ACT_UP) {
                         snz_quit();
                     }
+
+                    float* const hovered = SNZU_USE_MEM(float, "hoverAnim");
+                    snzu_easeExp(hovered, inter->hovered, ui_hoverAnimSpeed);
+                    snzu_boxSetColor(HMM_Lerp(ui_colorBackground, *hovered, ui_colorHoveredBackground));
                 }
             } // end offset to center lists on line
         } // end left bar
