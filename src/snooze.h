@@ -1184,6 +1184,7 @@ _snzu_Box* snzu_boxNew(const char* tag) {
         }
     }
 
+    b->color = HMM_V4(1, 0, 0, 0.1);
     return b;
 }
 
@@ -1289,6 +1290,14 @@ static void _snzu_genInteractionsForBoxAndChildren(_snzu_Box* box, uint64_t* rem
     for (_snzu_Box* child = box->lastChild; child; child = child->prevSibling) {
         _snzu_genInteractionsForBoxAndChildren(child, remainingInteractionFlags);
     }
+
+    // if (box->start.X > box->end.X || box->start.Y > box->end.Y) {
+    //     SNZ_LOGF("Box '%s' is backwards.", box->tag);
+    //     for (_snzu_Box* parent = box->parent; parent; parent = parent->parent) {
+    //         SNZ_LOGF("whose parent is: '%s'", parent->tag);
+    //     }
+    //     SNZ_ASSERT(false, "backwards box!");
+    // }
 
     if (box->interactionTarget) {
         snzu_Interaction* inter = box->interactionTarget;

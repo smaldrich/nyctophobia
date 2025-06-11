@@ -70,7 +70,7 @@ void main_loop(float dt, snz_Arena* frameArena, snzu_Input og_frameInputs, HMM_V
             snzu_boxSetTexture(main_sceneFrameBuffer.texture);
 
             snzu_Interaction* inter = SNZU_USE_MEM(snzu_Interaction, "inter");
-            snzu_boxSetInteractionOutput(inter, SNZU_IF_MOUSE_BUTTONS | SNZU_IF_MOUSE_SCROLL);
+            snzu_boxSetInteractionOutput(inter, SNZU_IF_NONE);
 
             if (snzu_isNothingFocused()) {
                 char inputChar = inter->keyChars[0];
@@ -109,7 +109,7 @@ void main_loop(float dt, snz_Arena* frameArena, snzu_Input og_frameInputs, HMM_V
             snzr_callGLFnOrError(glViewport(0, 0, fbSize.X, fbSize.Y));
             snzr_callGLFnOrError(glClearColor(ui_colorBackground.X, ui_colorBackground.Y, ui_colorBackground.Z, ui_colorBackground.W));
             snzr_callGLFnOrError(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
-            gm_celestialsBuild(main_celestials, sceneBox, HMM_Mul(proj, cameraView), frameArena);
+            gm_celestialsBuild(main_celestials, sceneBox, HMM_Mul(proj, cameraView), &main_targetCelestial, frameArena);
             snzr_callGLFnOrError(glBindFramebuffer(GL_FRAMEBUFFER, 0));
             snzr_callGLFnOrError(glViewport(0, 0, og_screenSize.X, og_screenSize.Y)); // FIXME: AHHHHHHHHHHH HAVE FRAME DRAW SET VIEPORT WHY DIDN"T U DO THAT BEFORE
         } // end main scene
@@ -138,7 +138,6 @@ void main_loop(float dt, snz_Arena* frameArena, snzu_Input og_frameInputs, HMM_V
                     snzu_boxNewF("%i", i);
                     snzu_Interaction* inter = SNZU_USE_MEM(snzu_Interaction, "inter");
                     snzu_boxSetInteractionOutput(inter, SNZU_IF_MOUSE_BUTTONS | SNZU_IF_HOVER);
-
                     if (inter->mouseActions[SNZU_MB_LEFT] == SNZU_ACT_DOWN) { // FIXME: techinically wrong, happening late in the frame
                         main_targetCelestial = c;
                     }
@@ -146,7 +145,7 @@ void main_loop(float dt, snz_Arena* frameArena, snzu_Input og_frameInputs, HMM_V
                     float* const targetedAnim = SNZU_USE_MEM(float, "targeted");
                     snzu_easeExp(targetedAnim, c == main_targetCelestial, 20);
                     float animVal = *targetedAnim + .25 * ui_hoverAnim(inter);
-                    float planetSize = (c->surfaceRadius * 120) + (50 * animVal);
+                    float planetSize = (c->surfaceRadius * 80) + (40 * animVal);
                     float paddedSize = planetSize + 20 + (20 * animVal);
 
                     snzu_boxSetSizeFromStart(HMM_V2(paddedSize, paddedSize));
