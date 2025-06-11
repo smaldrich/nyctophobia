@@ -1183,8 +1183,6 @@ _snzu_Box* snzu_boxNew(const char* tag) {
             SNZ_ASSERTF(false, "could not make new box, tag '%s' was already used in parent.\n", tag);
         }
     }
-
-    b->color = HMM_V4(1, 0, 0, 0.1);
     return b;
 }
 

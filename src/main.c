@@ -79,6 +79,10 @@ void main_loop(float dt, snz_Arena* frameArena, snzu_Input og_frameInputs, HMM_V
                     SNZ_ASSERT(idx <= 9, "Keypress to select planet was past 9");
                     main_targetCelestial = &main_celestials.elems[idx - 1];
                 }
+
+                if (inter->keyAction == SNZU_ACT_DOWN && inter->keyCode == SDLK_ESCAPE) {
+                    main_targetCelestial = main_rootCelestial;
+                }
             }
         }
         snzu_boxClipChildren(true);
