@@ -3,6 +3,79 @@
 #include "snooze.h"
 #include "ui.h"
 
+// out and scratch may be same arena
+void gm_spherePointsGen(snz_Arena* scratch, snz_Arena* out, int subdivs) {
+    float phi = (sqrtf(5) + 1) / 2.0f;
+    HMM_Vec3 initialPoints[20] = {
+        {-1, phi, 0}, {1, phi, 0}, {-1, -phi, 0}, {1, -phi, 0},
+        {-1, phi, 0}, {1, phi, 0}, {-1, -phi, 0}, {1, -phi, 0},
+        {0, -1, phi}, {0, 1, phi}, {0, -1, -phi}, {0, 1, -phi},
+        {phi, 0, -1}, {phi, 0, 1}, {-phi, 0, -1}, {-phi, 0, 1},
+    };
+    int32_t initialTris[] = {
+        0,11,5,0,5,1,0,1,7,0,7,10,0,10,11,
+        1,5,9,5,11,4,11,10,2,10,7,6,7,1,8,
+        3,9,4,3,4,2,3,2,6,3,6,8,3,8,9,
+        4,9,5,2,4,11,6,2,10,8,6,7,9,8,1,
+    };
+
+    int32_tSlice indicies = {
+        .elems = initialTris,
+        .count = sizeof(initialTris) / sizeof(*initialTris),
+    };
+    HMM_Vec3Slice verts = {
+        .elems = initialPoints,
+        .count = sizeof(initialPoints) / sizeof(*initialPoints),
+    };
+    for (int subdivisionIdx = 0; subdivisionIdx < subdivs; subdivisionIdx++) {
+        snz_Arena* arena = (subdivisionIdx == subdivs - 1) ? out : scratch;
+        SNZ_ARENA_ARR_BEGIN(arena, HMM_Vec3);
+        for (int triangleIdx = 0; triangleIdx < indicies.count / 3; triangleIdx++) {
+            HMM_Vec3* newPts = SNZ_ARENA_PUSH_ARR(arena, 6, HMM_Vec3);
+            int triStartIdx = triangleIdx * 3;
+            newPts[0] = verts.elems[indicies.elems[triStartIdx + 0]];
+            newPts[1] = verts.elems[indicies.elems[triStartIdx + 1]];
+            newPts[2] = verts.elems[indicies.elems[triStartIdx + 2]];
+            newPts[3] = HMM_DivV3F(HMM_Add(newPts[0], newPts[1]), 2.0f);
+            newPts[4] = HMM_DivV3F(HMM_Add(newPts[1], newPts[2]), 2.0f);
+            newPts[5] = HMM_DivV3F(HMM_Add(newPts[2], newPts[0]), 2.0f);
+
+            if (subdivisionIdx == subdivs - 1) {
+                for (int ptIdx = 0; ptIdx < 6; ptIdx++) {
+                    newPts[ptIdx] = HMM_Norm(newPts[ptIdx]);
+                }
+            } // end conditionally normalizing points
+        }
+        HMM_Vec3Slice newVerts = SNZ_ARENA_ARR_END(arena, HMM_Vec3);
+
+        SNZ_ARENA_ARR_BEGIN(arena, int32_t);
+        for (int triangleIdx = 0; triangleIdx < indicies.count / 3; triangleIdx++) {
+            int startIdx = 6 * triangleIdx; // six verts per subdivided triangle
+            int* indexes = SNZ_ARENA_PUSH_ARR(arena, 12, int); // 3 indexes for each of 4 triangles
+
+            indexes[0] = startIdx + 0;
+            indexes[1] = startIdx + 3;
+            indexes[2] = startIdx + 5;
+
+            indexes[3] = startIdx + 3;
+            indexes[4] = startIdx + 1;
+            indexes[5] = startIdx + 4;
+
+            indexes[6] = startIdx + 4;
+            indexes[7] = startIdx + 2;
+            indexes[8] = startIdx + 5;
+
+            indexes[9] = startIdx + 3;
+            indexes[10] = startIdx + 4;
+            indexes[11] = startIdx + 5;
+        }
+        int32_tSlice newIndicies = SNZ_ARENA_ARR_END(arena, int32_t);
+
+        verts = newVerts;
+        indicies = newIndicies;
+    }
+}
+
 typedef struct gm_Celestial gm_Celestial;
 struct gm_Celestial {
     // constant vars

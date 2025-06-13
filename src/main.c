@@ -41,7 +41,6 @@ void main_init(snz_Arena* scratch, SDL_Window* window) {
 void main_loop(float dt, snz_Arena* frameArena, snzu_Input og_frameInputs, HMM_Vec2 og_screenSize) {
     snzu_frameStart(frameArena, og_screenSize, dt);
 
-
     snzu_boxNew("parent");
     { // game update
         float* const time = SNZU_USE_MEM(float, "time");
