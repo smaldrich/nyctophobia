@@ -15,6 +15,7 @@ struct gm_Celestial {
     float surfaceRadius;
     float orbitStartOffset; // in rads, represents initial angle along orbit at t = 0
     HMM_Vec4 color;
+    snzr_Texture texture;
 
     // updated vars
     HMM_Vec2 currentPosition;
@@ -22,7 +23,7 @@ struct gm_Celestial {
 
 SNZ_SLICE(gm_Celestial);
 
-gm_Celestial* gm_celestialInit(snz_Arena* arena, const char* name, gm_Celestial* parent, float orbitRadius, float orbitTime, float orbitStartOffset, float surfaceRadius, HMM_Vec4 color) {
+gm_Celestial* gm_celestialInit(snz_Arena* arena, const char* name, const char* texturePath, gm_Celestial* parent, float orbitRadius, float orbitTime, float orbitStartOffset, float surfaceRadius, HMM_Vec4 color) {
     gm_Celestial* c = SNZ_ARENA_PUSH(arena, gm_Celestial);
     c->name = name;
     c->orbitRadius = orbitRadius;
@@ -30,6 +31,7 @@ gm_Celestial* gm_celestialInit(snz_Arena* arena, const char* name, gm_Celestial*
     c->orbitStartOffset = orbitStartOffset;
     c->surfaceRadius = surfaceRadius;
     c->color = color;
+    c->texture = ui_texFromFile(texturePath);
 
     c->parent = parent;
     if (c->parent) {
@@ -58,16 +60,18 @@ void gm_celestialUpdate(gm_Celestial* body, float time) {
     }
 }
 
-void gm_orbitLineDraw(HMM_Vec2 origin, float radius, HMM_Mat4 vp, snz_Arena* scratch) {
+void gm_orbitLineDraw(HMM_Vec2 fadeOrigin, HMM_Vec2 origin, float radius, HMM_Mat4 vp, snz_Arena* scratch) {
     HMM_Vec4Slice points = SNZ_ARENA_PUSH_SLICE(scratch, 256, HMM_Vec4);
     for (int i = 0; i < points.count; i++) {
         float angle = i * (2 * HMM_PI / (points.count - 1));  // minus one to close the loop
-        points.elems[i].XY = HMM_RotateV2(HMM_V2(1, 0), angle);
+        points.elems[i].XY = HMM_RotateV2(HMM_V2(radius, 0), angle);
+        points.elems[i].XY = HMM_Add(points.elems[i].XY, origin);
     }
-    HMM_Mat4 model = HMM_Scale(HMM_V3(radius, radius, radius));
-    model = HMM_Mul(HMM_Translate(HMM_V3(origin.X, origin.Y, 0)), model);
-    HMM_Mat4 mvp = HMM_Mul(vp, model);
-    snzr_drawLine(points.elems, points.count, ui_colorOrbit, ui_thicknessOrbit, mvp);
+    snzr_drawLineFaded(
+        points.elems, points.count,
+        ui_colorOrbit, ui_thicknessOrbit,
+        vp,
+        HMM_V3(fadeOrigin.X, fadeOrigin.Y, 0), 0, radius * 1.8);
 }
 
 // expects GL ctx to be on a framebuffer
@@ -85,6 +89,7 @@ void gm_celestialsBuild(gm_CelestialSlice celestials, _snzu_Box* parentBox, HMM_
     for (int i = 0; i < celestials.count; i++) {
         gm_Celestial* c = &celestials.elems[i];
         snzu_boxNewF("%d", i);
+        snzu_boxSetTexture(c->texture);
         snzu_boxSetColor(c->color);
 
         snzu_Interaction* inter = SNZU_USE_MEM(snzu_Interaction, "inter");
@@ -109,7 +114,7 @@ void gm_celestialsBuild(gm_CelestialSlice celestials, _snzu_Box* parentBox, HMM_
         }
 
         for (gm_Celestial* child = c->firstChild; child; child = child->nextSibling) {
-            gm_orbitLineDraw(c->currentPosition, child->orbitRadius, vp, scratch);
+            gm_orbitLineDraw(child->currentPosition, c->currentPosition, child->orbitRadius, vp, scratch);
         }
     }
 }

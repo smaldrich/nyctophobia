@@ -21,20 +21,20 @@ void main_init(snz_Arena* scratch, SDL_Window* window) {
     main_uiInstance = snzu_instanceInit();
     snzu_instanceSelect(&main_uiInstance);
 
-    main_fontArena = snz_arenaInit(10000000000, "main_fontArena");
-    main_lifetimeArena = snz_arenaInit(10000000000, "main_lifetimeArena");
+    main_fontArena = snz_arenaInit(10000000, "main_fontArena");
+    main_lifetimeArena = snz_arenaInit(10000000, "main_lifetimeArena");
 
     ui_init(&main_fontArena, scratch);
 
     SNZ_ARENA_ARR_BEGIN(&main_lifetimeArena, gm_Celestial);
     // name, parent, orbit radius, orbit time, orbit offset, size, color
-    gm_Celestial* sol = gm_celestialInit(&main_lifetimeArena, "Sol", NULL, 80, 0, 0, 1, HMM_V4(1, 1, 0, 1));
+    gm_Celestial* sol = gm_celestialInit(&main_lifetimeArena, "SOL", "res/textures/sol.png", NULL, 80, 0, 0, 1, ui_colorText);
     main_rootCelestial = sol;
     main_targetCelestial = sol;
-    gm_celestialInit(&main_lifetimeArena, "Doppler", sol, 10, 45, 0, .25, HMM_V4(.7, 1, 0, 1));
-    gm_Celestial* cassiopea = gm_celestialInit(&main_lifetimeArena, "Cassiopea", sol, 20, 60, .3, 1, HMM_V4(1, 1, 0, 1));
-    gm_celestialInit(&main_lifetimeArena, "Cassi", cassiopea, 1.5, 10, 0, 0.25, HMM_V4(0.7, 0.7, 0.7, 1));
-    gm_celestialInit(&main_lifetimeArena, "Artemis", sol, 40, 120, 4.5, 2, HMM_V4(0, .6, .7, 1));
+    gm_celestialInit(&main_lifetimeArena, "DOPPLER", "res/textures/doppler.png", sol, 10, 45, 0, .25, ui_colorText);
+    gm_Celestial* cassiopea = gm_celestialInit(&main_lifetimeArena, "CASSIOPEA", "res/textures/cassiopea.png", sol, 20, 60, .3, 1, ui_colorText);
+    gm_celestialInit(&main_lifetimeArena, "CASSI", "res/textures/sol.png", cassiopea, 1.5, 10, 0, 0.25, ui_colorText);
+    gm_celestialInit(&main_lifetimeArena, "ARTEMIS", "res/textures/artemis.png", sol, 40, 120, 4.5, 2, ui_colorText);
     main_celestials = SNZ_ARENA_ARR_END(&main_lifetimeArena, gm_Celestial);
 }
 
@@ -155,6 +155,7 @@ void main_loop(float dt, snz_Arena* frameArena, snzu_Input og_frameInputs, HMM_V
                     snzu_boxSetSizeFromStart(HMM_V2(paddedSize, paddedSize));
                     snzu_boxScope() {
                         snzu_boxNew("planet");
+                        snzu_boxSetTexture(c->texture);
                         snzu_boxSetColor(c->color);
                         snzu_boxSetSizeFromStart(HMM_V2(planetSize, planetSize));
                         snzu_boxAlignInParent(SNZU_AX_X, SNZU_ALIGN_CENTER);
@@ -173,10 +174,10 @@ void main_loop(float dt, snz_Arena* frameArena, snzu_Input og_frameInputs, HMM_V
 
                 snzu_boxNew("menu");
                 snzu_boxSetEndFromParentEnd(HMM_V2(0, -verticalPadding));
-                snzu_boxSetSizeFromEnd(HMM_V2(120, 120));
+                snzu_boxSetSizeFromEnd(HMM_V2(80, 80));
                 snzu_boxAlignInParent(SNZU_AX_X, SNZU_ALIGN_CENTER);
                 {
-                    snzu_boxSetDisplayStr(&ui_labelFont, ui_colorText, "quit");
+                    snzu_boxSetDisplayStr(&ui_labelFont, ui_colorText, "QUIT");
                     snzu_boxSetBorder(ui_thicknessUiLines, ui_colorText);
                     snzu_Interaction* const inter = SNZU_USE_MEM(snzu_Interaction, "inter");
                     snzu_boxSetInteractionOutput(inter, SNZU_IF_MOUSE_BUTTONS | SNZU_IF_HOVER | SNZU_IF_MOUSE_SCROLL);
@@ -197,6 +198,6 @@ void main_loop(float dt, snz_Arena* frameArena, snzu_Input og_frameInputs, HMM_V
 }
 
 int main() {
-    snz_main("telemeter v0", NULL, main_init, main_loop);
+    snz_main("nyctophobia v0", NULL, main_init, main_loop);
     return EXIT_SUCCESS;
 }

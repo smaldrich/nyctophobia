@@ -18,25 +18,25 @@ float ui_thicknessUiLines = 1;
 float ui_padding = 5;
 
 // loads in RGBA, asserts on failue.
-// static snzr_Texture* _ui_texFromFile(const char* path, snz_Arena* outForTexture) {
-//     SNZ_LOGF("Loading texture from %s.", path);
-//     int w, h, channels = 0;
-//     uint8_t* pixels = stbi_load(path, &w, &h, &channels, 4);
-//     SNZ_ASSERT(pixels, "Texture load failed.");
-//     snzr_Texture* tex = SNZ_ARENA_PUSH(outForTexture, snzr_Texture);
-//     *tex = snzr_textureInitRBGA(w, h, pixels);
-//     stbi_image_free(pixels);
-//     return tex;
-// }
+snzr_Texture ui_texFromFile(const char* path) {
+    SNZ_LOGF("Loading texture from %s.", path);
+    int w, h, channels = 0;
+    uint8_t* pixels = stbi_load(path, &w, &h, &channels, 4);
+    SNZ_ASSERT(pixels, "Texture load failed.");
+    snzr_Texture tex = snzr_textureInitRBGA(w, h, pixels);
+    stbi_image_free(pixels);
+    return tex;
+}
 
 void ui_init(snz_Arena* fontArena, snz_Arena* scratch) {
     stbi_set_flip_vertically_on_load(true);
-    ui_labelFont = snzr_fontInit(fontArena, scratch, "res/fonts/AzeretMono-Regular.ttf", 20);
+    ui_labelFont = snzr_fontInit(fontArena, scratch, "res/fonts/SpaceMono-Regular.ttf", 24);
 
-    ui_colorText = HMM_V4(1, 1, 1, 1);
-    ui_colorAccent = HMM_V4(0.18, 0.20, 0.4, 1.0f);
+    ui_colorText = HMM_V4(230 / 255.0, 244 / 255.0, 255 / 255.0, 1);
+    ui_colorBackground = HMM_V4(9 / 255.0, 4 / 255.0, 3 / 255.0, 1.0f);
     ui_colorOrbit = ui_colorText;
-    ui_colorBackground = HMM_V4(0.01, 0.015, 0.03, 1.0f);
+
+    ui_colorAccent = HMM_V4(0.18, 0.20, 0.4, 1.0f);
     ui_colorHoveredBackground = HMM_V4(0.4, 0.3, 0.07, 1.0f);
 }
 
