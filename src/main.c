@@ -40,7 +40,7 @@ void main_init(snz_Arena* scratch, SDL_Window* window) {
     gm_celestialInit(&main_lifetimeArena, "ARTEMIS", "res/textures/artemis.png", sol, 40, 120, 4.5, 2, ui_colorText);
     main_celestials = SNZ_ARENA_ARR_END(&main_lifetimeArena, gm_Celestial);
 
-    main_sphereMesh = gm_sphereMeshInit(scratch, 5);
+    main_sphereMesh = gm_sphereMeshInit(scratch, 1);
 }
 
 void main_loop(float dt, snz_Arena* frameArena, snzu_Input og_frameInputs, HMM_Vec2 og_screenSize) {
@@ -121,11 +121,12 @@ void main_loop(float dt, snz_Arena* frameArena, snzu_Input og_frameInputs, HMM_V
             snzr_callGLFnOrError(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
             gm_celestialsBuild(main_celestials, sceneBox, HMM_Mul(proj, cameraView), &main_targetCelestial, frameArena);
 
-            HMM_Mat4 vp = HMM_Mul(proj, cameraView);
-            HMM_Mat4 model = HMM_Rotate_RH(time, HMM_V3(0, 1, 0));
-            model = HMM_Mul(HMM_Scale(HMM_V3(50, 50, 50)), model);
-            model = HMM_Mul(HMM_Translate(HMM_V3(0, 0, -100)), model);
-            ren3d_drawMesh(&main_sphereMesh, vp, model, HMM_V4(0, 1, 0, 1), HMM_V3(0, 0, 10));
+            {
+                HMM_Mat4 model = HMM_Rotate_RH(time, HMM_V3(0, 1, 1));
+                model = HMM_Mul(HMM_Scale(HMM_V3(5, 5, 5)), model);
+                HMM_Vec4 color = HMM_V4(0, 1, 0, 1);
+                ren3d_drawMesh(&main_sphereMesh, HMM_Mul(proj, cameraView), model, color, HMM_V3(0, 0, 10));
+            }
 
             snzr_callGLFnOrError(glBindFramebuffer(GL_FRAMEBUFFER, 0));
             snzr_callGLFnOrError(glViewport(0, 0, og_screenSize.X, og_screenSize.Y)); // FIXME: AHHHHHHHHHHH HAVE FRAME DRAW SET VIEPORT WHY DIDN"T U DO THAT BEFORE

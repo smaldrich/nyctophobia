@@ -46,13 +46,13 @@ ren3d_Mesh ren3d_meshInit(ren3d_Vert* verts, uint64_t vertCount, uint32_t* indic
     glGenVertexArrays(1, &out.vaId);
     glBindVertexArray(out.vaId);
 
-    glGenBuffers(1, &out.indexBufferId);
-    glBindBuffer(GL_ARRAY_BUFFER, out.indexBufferId);
+    glGenBuffers(1, &out.vertexBufferId);
+    glBindBuffer(GL_ARRAY_BUFFER, out.vertexBufferId);
     uint64_t vertSize = sizeof(ren3d_Vert);
     glBufferData(GL_ARRAY_BUFFER, vertCount * vertSize, verts, GL_STATIC_DRAW);
 
-    glGenBuffers(1, &out.vertexBufferId);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, out.vertexBufferId);
+    glGenBuffers(1, &out.indexBufferId);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, out.indexBufferId);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexCount * sizeof(uint32_t), indicies, GL_STATIC_DRAW);
     out.indexCount = indexCount;
 
@@ -98,5 +98,6 @@ void ren3d_drawMesh(const ren3d_Mesh* mesh, HMM_Mat4 vp, HMM_Mat4 model, HMM_Vec
     snzr_callGLFnOrError(glBindVertexArray(mesh->vaId));
     snzr_callGLFnOrError(glBindBuffer(GL_ARRAY_BUFFER, mesh->vertexBufferId));
     snzr_callGLFnOrError(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->indexBufferId));
+    // snzr_callGLFnOrError(glDrawArrays(GL_TRIANGLES, 0, mesh->indexCount / 5));
     snzr_callGLFnOrError(glDrawElements(GL_TRIANGLES, mesh->indexCount, GL_UNSIGNED_INT, NULL));
 }
