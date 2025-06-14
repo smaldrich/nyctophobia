@@ -4,34 +4,34 @@
 #include "ui.h"
 #include "render3d.h"
 
-void gm_trisToSTLFile(const char* path, ren3d_Vert* verts, uint32_t* indicies, int64_t indexCount) {
-    FILE* f = fopen(path, "w");
-    SNZ_ASSERTF(f, "Opening file '%s' failed.", path);
+// void gm_trisToSTLFile(const char* path, ren3d_Vert* verts, uint32_t* indicies, int64_t indexCount) {
+//     FILE* f = fopen(path, "w");
+//     SNZ_ASSERTF(f, "Opening file '%s' failed.", path);
 
-    fprintf(f, "solid object\n");
-    for (int i = 0; i < indexCount / 3; i++) {
-        int64_t startIdx = i * 3;
-        HMM_Vec3 a = verts[indicies[startIdx + 0]].pos;
-        HMM_Vec3 b = verts[indicies[startIdx + 1]].pos;
-        HMM_Vec3 c = verts[indicies[startIdx + 2]].pos;
+//     fprintf(f, "solid object\n");
+//     for (int i = 0; i < indexCount / 3; i++) {
+//         int64_t startIdx = i * 3;
+//         HMM_Vec3 a = verts[indicies[startIdx + 0]].pos;
+//         HMM_Vec3 b = verts[indicies[startIdx + 1]].pos;
+//         HMM_Vec3 c = verts[indicies[startIdx + 2]].pos;
 
-        HMM_Vec3 normal = HMM_Cross(HMM_SubV3(b, a), HMM_SubV3(c, a));
-        normal = HMM_Norm(normal);
+//         HMM_Vec3 normal = HMM_Cross(HMM_SubV3(b, a), HMM_SubV3(c, a));
+//         normal = HMM_Norm(normal);
 
-        fprintf(f, "facet normal %f %f %f\n", normal.X, normal.Y, normal.Z);
-        fprintf(f, "outer loop\n");
-        fprintf(f, "vertex %f %f %f\n", a.X, a.Y, a.Z);
-        fprintf(f, "vertex %f %f %f\n", b.X, b.Y, b.Z);
-        fprintf(f, "vertex %f %f %f\n", c.X, c.Y, c.Z);
-        fprintf(f, "endloop\n");
-        fprintf(f, "endfacet\n");
-    }
-    fprintf(f, "endsolid object\n");
-    fclose(f);
-}
+//         fprintf(f, "facet normal %f %f %f\n", normal.X, normal.Y, normal.Z);
+//         fprintf(f, "outer loop\n");
+//         fprintf(f, "vertex %f %f %f\n", a.X, a.Y, a.Z);
+//         fprintf(f, "vertex %f %f %f\n", b.X, b.Y, b.Z);
+//         fprintf(f, "vertex %f %f %f\n", c.X, c.Y, c.Z);
+//         fprintf(f, "endloop\n");
+//         fprintf(f, "endfacet\n");
+//     }
+//     fprintf(f, "endsolid object\n");
+//     fclose(f);
+// }
 
 // out and scratch may be same arena
-ren3d_Mesh gm_sphere(snz_Arena* scratch, int subdivs) {
+ren3d_Mesh gm_sphereMeshInit(snz_Arena* scratch, int subdivs) {
     // https://www.classes.cs.uchicago.edu/archive/2003/fall/23700/docs/handout-04.pdf
     float phi = (sqrtf(5) + 1) / 2.0f;
     HMM_Vec3 initialPoints[12] = {
@@ -116,7 +116,6 @@ ren3d_Mesh gm_sphere(snz_Arena* scratch, int subdivs) {
         finalVerts[i].pos = HMM_Norm(verts.elems[i]);
         finalVerts[i].normal = finalVerts[i].pos;
     }
-    gm_trisToSTLFile("test.stl", finalVerts, indicies.elems, indicies.count);
     return ren3d_meshInit(finalVerts, verts.count, indicies.elems, (uint64_t)indicies.count);
 }
 
