@@ -15,6 +15,8 @@ gm_CelestialSlice main_celestials = { 0 };
 gm_Celestial* main_rootCelestial = NULL;
 gm_Celestial* main_targetCelestial = NULL;
 
+ren3d_Mesh main_sphereMesh = { 0 };
+
 void main_init(snz_Arena* scratch, SDL_Window* window) {
     SNZ_ASSERT(window || !window, "???");
 
@@ -25,6 +27,7 @@ void main_init(snz_Arena* scratch, SDL_Window* window) {
     main_lifetimeArena = snz_arenaInit(10000000, "main_lifetimeArena");
 
     ui_init(&main_fontArena, scratch);
+    ren3d_init(scratch);
 
     SNZ_ARENA_ARR_BEGIN(&main_lifetimeArena, gm_Celestial);
     // name, parent, orbit radius, orbit time, orbit offset, size, color
@@ -36,16 +39,20 @@ void main_init(snz_Arena* scratch, SDL_Window* window) {
     gm_celestialInit(&main_lifetimeArena, "CASSI", "res/textures/sol.png", cassiopea, 1.5, 10, 0, 0.25, ui_colorText);
     gm_celestialInit(&main_lifetimeArena, "ARTEMIS", "res/textures/artemis.png", sol, 40, 120, 4.5, 2, ui_colorText);
     main_celestials = SNZ_ARENA_ARR_END(&main_lifetimeArena, gm_Celestial);
+
+    main_sphereMesh = gm_sphere(scratch, 0);
 }
 
 void main_loop(float dt, snz_Arena* frameArena, snzu_Input og_frameInputs, HMM_Vec2 og_screenSize) {
     snzu_frameStart(frameArena, og_screenSize, dt);
 
     snzu_boxNew("parent");
+    float time = 0;
     { // game update
-        float* const time = SNZU_USE_MEM(float, "time");
-        *time += dt;
-        gm_celestialUpdate(main_rootCelestial, *time);
+        float* const _time = SNZU_USE_MEM(float, "time");
+        *_time += dt;
+        time = *_time;
+        gm_celestialUpdate(main_rootCelestial, time);
     }
 
     snzu_boxFillParent();
@@ -113,6 +120,13 @@ void main_loop(float dt, snz_Arena* frameArena, snzu_Input og_frameInputs, HMM_V
             snzr_callGLFnOrError(glClearColor(ui_colorBackground.X, ui_colorBackground.Y, ui_colorBackground.Z, ui_colorBackground.W));
             snzr_callGLFnOrError(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
             gm_celestialsBuild(main_celestials, sceneBox, HMM_Mul(proj, cameraView), &main_targetCelestial, frameArena);
+
+            HMM_Mat4 vp = HMM_Mul(proj, cameraView);
+            HMM_Mat4 model = HMM_Rotate_RH(time, HMM_V3(0, 1, 0));
+            model = HMM_Mul(HMM_Scale(HMM_V3(50, 50, 50)), model);
+            model = HMM_Mul(HMM_Translate(HMM_V3(0, 0, -100)), model);
+            ren3d_drawMesh(&main_sphereMesh, vp, model, HMM_V4(0, 1, 0, 1), HMM_V3(0, 0, 10));
+
             snzr_callGLFnOrError(glBindFramebuffer(GL_FRAMEBUFFER, 0));
             snzr_callGLFnOrError(glViewport(0, 0, og_screenSize.X, og_screenSize.Y)); // FIXME: AHHHHHHHHHHH HAVE FRAME DRAW SET VIEPORT WHY DIDN"T U DO THAT BEFORE
         } // end main scene

@@ -103,6 +103,7 @@ SNZ_SLICE(HMM_Vec4);
 SNZ_SLICE(HMM_Vec3Slice);
 SNZ_SLICE(bool);
 SNZ_SLICE(int64_t);
+SNZ_SLICE(uint32_t);
 SNZ_SLICE(int32_t);
 SNZ_SLICE(int8_t);
 SNZ_SLICE(uint8_t);
