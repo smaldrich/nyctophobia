@@ -40,7 +40,7 @@ void main_init(snz_Arena* scratch, SDL_Window* window) {
     gm_celestialInit(&main_lifetimeArena, "ARTEMIS", "res/textures/artemis.png", sol, 40, 120, 4.5, 2, ui_colorText);
     main_celestials = SNZ_ARENA_ARR_END(&main_lifetimeArena, gm_Celestial);
 
-    main_sphereMesh = gm_sphere(scratch, 0);
+    main_sphereMesh = gm_sphere(scratch, 5);
 }
 
 void main_loop(float dt, snz_Arena* frameArena, snzu_Input og_frameInputs, HMM_Vec2 og_screenSize) {

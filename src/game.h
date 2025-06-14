@@ -4,20 +4,62 @@
 #include "ui.h"
 #include "render3d.h"
 
+void gm_trisToSTLFile(const char* path, ren3d_Vert* verts, uint32_t* indicies, int64_t indexCount) {
+    FILE* f = fopen(path, "w");
+    SNZ_ASSERTF(f, "Opening file '%s' failed.", path);
+
+    fprintf(f, "solid object\n");
+    for (int i = 0; i < indexCount / 3; i++) {
+        int64_t startIdx = i * 3;
+        HMM_Vec3 a = verts[indicies[startIdx + 0]].pos;
+        HMM_Vec3 b = verts[indicies[startIdx + 1]].pos;
+        HMM_Vec3 c = verts[indicies[startIdx + 2]].pos;
+
+        HMM_Vec3 normal = HMM_Cross(HMM_SubV3(b, a), HMM_SubV3(c, a));
+        normal = HMM_Norm(normal);
+
+        fprintf(f, "facet normal %f %f %f\n", normal.X, normal.Y, normal.Z);
+        fprintf(f, "outer loop\n");
+        fprintf(f, "vertex %f %f %f\n", a.X, a.Y, a.Z);
+        fprintf(f, "vertex %f %f %f\n", b.X, b.Y, b.Z);
+        fprintf(f, "vertex %f %f %f\n", c.X, c.Y, c.Z);
+        fprintf(f, "endloop\n");
+        fprintf(f, "endfacet\n");
+    }
+    fprintf(f, "endsolid object\n");
+    fclose(f);
+}
+
 // out and scratch may be same arena
 ren3d_Mesh gm_sphere(snz_Arena* scratch, int subdivs) {
+    // https://www.classes.cs.uchicago.edu/archive/2003/fall/23700/docs/handout-04.pdf
     float phi = (sqrtf(5) + 1) / 2.0f;
-    HMM_Vec3 initialPoints[20] = {
-        HMM_V3(-1, phi, 0), HMM_V3(1, phi, 0), HMM_V3(-1, -phi, 0), HMM_V3(1, -phi, 0),
-        HMM_V3(-1, phi, 0), HMM_V3(1, phi, 0), HMM_V3(-1, -phi, 0), HMM_V3(1, -phi, 0),
-        HMM_V3(0, -1, phi), HMM_V3(0, 1, phi), HMM_V3(0, -1, -phi), HMM_V3(0, 1, -phi),
-        HMM_V3(phi, 0, -1), HMM_V3(phi, 0, 1), HMM_V3(-phi, 0, -1), HMM_V3(-phi, 0, 1),
+    HMM_Vec3 initialPoints[12] = {
+        HMM_V3(phi, 1, 0), HMM_V3(-phi, 1, 0), HMM_V3(phi, -1, 0), HMM_V3(-phi, -1, 0),
+        HMM_V3(1, 0, phi), HMM_V3(1, 0, -phi), HMM_V3(-1, 0, phi), HMM_V3(-1, 0, -phi),
+        HMM_V3(0, phi, 1), HMM_V3(0, -phi, 1), HMM_V3(0, phi, -1), HMM_V3(0, -phi, -1),
     };
     uint32_t initialTris[] = {
-        0,11,5,0,5,1,0,1,7,0,7,10,0,10,11,
-        1,5,9,5,11,4,11,10,2,10,7,6,7,1,8,
-        3,9,4,3,4,2,3,2,6,3,6,8,3,8,9,
-        4,9,5,2,4,11,6,2,10,8,6,7,9,8,1,
+        0, 8, 4,
+        0, 5, 10,
+        2, 4, 9,
+        2, 11, 5,
+        1, 6, 8,
+        1, 10, 7,
+        3, 9, 6,
+        2, 9, 11,
+        3, 9, 11,
+        4, 2, 0,
+        5, 0, 2,
+        6, 1, 3,
+        7, 3, 1,
+        8, 6, 4,
+        3, 7, 11,
+        0, 10, 8,
+        1, 8, 10,
+        9, 4, 6,
+        10, 5, 7,
+        11, 7,5,
     };
 
     uint32_tSlice indicies = {
@@ -74,6 +116,7 @@ ren3d_Mesh gm_sphere(snz_Arena* scratch, int subdivs) {
         finalVerts[i].pos = HMM_Norm(verts.elems[i]);
         finalVerts[i].normal = finalVerts[i].pos;
     }
+    gm_trisToSTLFile("test.stl", finalVerts, indicies.elems, indicies.count);
     return ren3d_meshInit(finalVerts, verts.count, indicies.elems, (uint64_t)indicies.count);
 }
 
