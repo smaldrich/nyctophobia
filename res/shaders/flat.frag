@@ -2,11 +2,9 @@
 
 out vec4 color;
 
-in vec3 vNormal;
 in vec3 vPos;
 
 uniform vec4 uColor;
-uniform vec3 uLightOrigin;
 
 void main()
 {

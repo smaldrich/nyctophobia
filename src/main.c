@@ -31,16 +31,15 @@ void main_init(snz_Arena* scratch, SDL_Window* window) {
 
     SNZ_ARENA_ARR_BEGIN(&main_lifetimeArena, gm_Celestial);
     // name, parent, orbit radius, orbit time, orbit offset, size, color
-    gm_Celestial* sol = gm_celestialInit(&main_lifetimeArena, "SOL", "res/textures/sol.png", NULL, 80, 0, 0, 1, ui_colorText);
+    gm_Celestial* sol = gm_celestialInit(&main_lifetimeArena, "SOL", "res/textures/sol.png", NULL, 0, 0, 0, 1, ui_colorText);
     main_rootCelestial = sol;
-    main_targetCelestial = sol;
     gm_celestialInit(&main_lifetimeArena, "DOPPLER", "res/textures/doppler.png", sol, 10, 45, 0, .25, ui_colorText);
     gm_Celestial* cassiopea = gm_celestialInit(&main_lifetimeArena, "CASSIOPEA", "res/textures/cassiopea.png", sol, 20, 60, .3, 1, ui_colorText);
     gm_celestialInit(&main_lifetimeArena, "CASSI", "res/textures/sol.png", cassiopea, 1.5, 10, 0, 0.25, ui_colorText);
     gm_celestialInit(&main_lifetimeArena, "ARTEMIS", "res/textures/artemis.png", sol, 40, 120, 4.5, 2, ui_colorText);
     main_celestials = SNZ_ARENA_ARR_END(&main_lifetimeArena, gm_Celestial);
 
-    main_sphereMesh = gm_sphereMeshInit(scratch, 1);
+    main_sphereMesh = gm_sphereMeshInit(scratch, 5);
 }
 
 void main_loop(float dt, snz_Arena* frameArena, snzu_Input og_frameInputs, HMM_Vec2 og_screenSize) {
@@ -100,7 +99,7 @@ void main_loop(float dt, snz_Arena* frameArena, snzu_Input og_frameInputs, HMM_V
             HMM_Vec2* const cameraPosition = SNZU_USE_MEM(HMM_Vec2, "cameraPos");
 
             HMM_Vec2 targetPosition = HMM_V2(0, 0);
-            float targetHeight = 70;
+            float targetHeight = 100; // default if no celestial or root celestial is targeted
             if (main_targetCelestial) {
                 targetPosition = main_targetCelestial->currentPosition;
                 targetHeight = 1.5 * main_targetCelestial->orbitRadius;
@@ -120,6 +119,9 @@ void main_loop(float dt, snz_Arena* frameArena, snzu_Input og_frameInputs, HMM_V
             snzr_callGLFnOrError(glClearColor(ui_colorBackground.X, ui_colorBackground.Y, ui_colorBackground.Z, ui_colorBackground.W));
             snzr_callGLFnOrError(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
             gm_celestialsBuild(main_celestials, sceneBox, HMM_Mul(proj, cameraView), &main_targetCelestial, frameArena);
+            if (main_targetCelestial == main_rootCelestial) {
+                main_targetCelestial = NULL;
+            }
 
             {
                 HMM_Mat4 model = HMM_Rotate_RH(time, HMM_V3(0, 1, 1));
@@ -158,6 +160,9 @@ void main_loop(float dt, snz_Arena* frameArena, snzu_Input og_frameInputs, HMM_V
                     snzu_boxSetInteractionOutput(inter, SNZU_IF_MOUSE_BUTTONS | SNZU_IF_HOVER);
                     if (inter->mouseActions[SNZU_MB_LEFT] == SNZU_ACT_DOWN) { // FIXME: techinically wrong, happening late in the frame
                         main_targetCelestial = c;
+                        if (c == main_rootCelestial) {
+                            main_targetCelestial = NULL;
+                        }
                     }
 
                     float* const targetedAnim = SNZU_USE_MEM(float, "targeted");
