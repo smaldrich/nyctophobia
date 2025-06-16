@@ -4,6 +4,19 @@
 #include "ui.h"
 #include "render3d.h"
 
+typedef enum {
+    GM_MK_ROCK,
+    GM_MK_BIO,
+    GM_MK_WATER,
+    GM_MK_COUNT
+} gm_MaterialKind;
+
+HMM_Vec4 gm_materialColors[] = {
+    [GM_MK_ROCK] = {.X = 0.2, .Y = 0.2, .Z = 0.2, .W = 1},
+    [GM_MK_BIO] = {.X = 0.1, .Y = 0.7, .Z = 0.2, .W = 1},
+    [GM_MK_WATER] = {.X = 0.1, .Y = 0.2, .Z = 0.7, .W = 1},
+};
+
 // void gm_trisToSTLFile(const char* path, ren3d_Vert* verts, uint32_t* indicies, int64_t indexCount) {
 //     FILE* f = fopen(path, "w");
 //     SNZ_ASSERTF(f, "Opening file '%s' failed.", path);
@@ -114,8 +127,7 @@ ren3d_Mesh gm_sphereMeshInit(snz_Arena* scratch, int subdivs) {
     ren3d_Vert* finalVerts = SNZ_ARENA_PUSH_ARR(scratch, verts.count, ren3d_Vert);
     for (int i = 0; i < verts.count; i++) {
         finalVerts[i].pos = HMM_Norm(verts.elems[i]);
-        float color = ((float)i / verts.count);
-        finalVerts[i].color = HMM_V4(1, color, color, 1);
+        finalVerts[i].color = gm_materialColors[(i / 31) % GM_MK_COUNT];
     }
     return ren3d_meshInit(finalVerts, verts.count, indicies.elems, (uint64_t)indicies.count);
 }
