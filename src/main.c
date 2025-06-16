@@ -14,6 +14,7 @@ snzr_FrameBuffer main_sceneFrameBuffer = { 0 };
 gm_CelestialSlice main_celestials = { 0 };
 gm_Celestial* main_rootCelestial = NULL;
 gm_Celestial* main_targetCelestial = NULL;
+bool main_targetCelestialZoomed = false;
 
 ren3d_Mesh main_sphereMesh = { 0 };
 
@@ -85,11 +86,24 @@ void main_loop(float dt, snz_Arena* frameArena, snzu_Input og_frameInputs, HMM_V
                     main_targetCelestial = &main_celestials.elems[idx - 1];
                 }
 
-                if (inter->keyAction == SNZU_ACT_DOWN && inter->keyCode == SDLK_ESCAPE) {
-                    main_targetCelestial = main_rootCelestial;
-                }
-            }
-        }
+                if (inter->keyAction == SNZU_ACT_DOWN) {
+                    if (inter->keyCode == SDLK_ESCAPE) {
+                        if (main_targetCelestialZoomed) {
+                            main_targetCelestialZoomed = false;
+                        } else {
+                            if (main_targetCelestial) {
+                                main_targetCelestial = main_targetCelestial->parent;
+                            }
+                            if (main_targetCelestial == main_rootCelestial) {
+                                main_targetCelestial = NULL;
+                            }
+                        }
+                    } else if (inter->keyCode == SDLK_SPACE) {
+                        main_targetCelestialZoomed = !main_targetCelestialZoomed;
+                    }
+                } // end keydown checks
+            } // end other focused check
+        } // end main scene
         snzu_boxClipChildren(true);
         snzu_boxScope() {
             float* const cameraHeight = SNZU_USE_MEM(float, "cameraHeight");
@@ -106,6 +120,15 @@ void main_loop(float dt, snz_Arena* frameArena, snzu_Input og_frameInputs, HMM_V
             }
             *cameraHeight = HMM_Lerp(*cameraHeight, 0.2, targetHeight);
             *cameraPosition = HMM_Lerp(*cameraPosition, 0.2, targetPosition);
+
+            float* const zoomAnim = SNZU_USE_MEM(float, "zoom anim");
+            if (!main_targetCelestial) {
+                main_targetCelestialZoomed = false;
+            }
+            snzu_easeExp(zoomAnim, main_targetCelestialZoomed, 20);
+            if (main_targetCelestial) {
+                *cameraHeight = HMM_Lerp(*cameraHeight, *zoomAnim, main_targetCelestial->surfaceRadius * 2 * 1.5);
+            }
 
             HMM_Vec2 fbSize = HMM_V2(main_sceneFrameBuffer.texture.width, main_sceneFrameBuffer.texture.height);
             float aspect = fbSize.X / fbSize.Y;
