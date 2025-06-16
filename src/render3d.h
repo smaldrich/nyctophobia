@@ -21,7 +21,7 @@ static char* _ren3d_loadFileToStr(const char* path, snz_Arena* scratch) {
 
 typedef struct {
     HMM_Vec3 pos;
-    HMM_Vec3 normal;
+    HMM_Vec4 color;
 } ren3d_Vert;
 
 SNZ_SLICE(ren3d_Vert);
@@ -58,7 +58,7 @@ ren3d_Mesh ren3d_meshInit(ren3d_Vert* verts, uint64_t vertCount, uint32_t* indic
 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, vertSize, NULL);  // position
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, vertSize, (void*)(sizeof(HMM_Vec3)));  // normals
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, vertSize, (void*)offsetof(ren3d_Vert, color));  // color
     glEnableVertexAttribArray(1);
 
     glBindVertexArray(0);
@@ -79,7 +79,7 @@ void ren3d_init(snz_Arena* scratch) {
     _ren3d_flatId = snzr_shaderInit(vertSrc, fragSrc, scratch);
 }
 
-void ren3d_drawMesh(const ren3d_Mesh* mesh, HMM_Mat4 vp, HMM_Mat4 model, HMM_Vec4 color, HMM_Vec3 lightOrigin) {
+void ren3d_drawMesh(const ren3d_Mesh* mesh, HMM_Mat4 vp, HMM_Mat4 model) {
     snzr_callGLFnOrError(glUseProgram(_ren3d_flatId));
 
     // FIXME: gl safe uniform loc calls
@@ -88,12 +88,6 @@ void ren3d_drawMesh(const ren3d_Mesh* mesh, HMM_Mat4 vp, HMM_Mat4 model, HMM_Vec
 
     loc = glGetUniformLocation(_ren3d_flatId, "uModel");
     snzr_callGLFnOrError(glUniformMatrix4fv(loc, 1, false, (float*)&model));
-
-    loc = glGetUniformLocation(_ren3d_flatId, "uColor");
-    snzr_callGLFnOrError(glUniform4f(loc, color.X, color.Y, color.Z, color.W));
-
-    loc = glGetUniformLocation(_ren3d_flatId, "uLightOrigin");
-    snzr_callGLFnOrError(glUniform3f(loc, lightOrigin.X, lightOrigin.Y, lightOrigin.Z));
 
     snzr_callGLFnOrError(glBindVertexArray(mesh->vaId));
     snzr_callGLFnOrError(glBindBuffer(GL_ARRAY_BUFFER, mesh->vertexBufferId));

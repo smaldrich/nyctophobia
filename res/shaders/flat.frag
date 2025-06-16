@@ -3,12 +3,11 @@
 out vec4 color;
 
 in vec3 vPos;
-
-uniform vec4 uColor;
+in vec4 vColor;
 
 void main()
 {
     // vec3 lightDir = normalize(vPos - uLightOrigin);
     // color = uColor + (0.1 * length(lightDir));
-    color = uColor;
+    color = vColor;
 };

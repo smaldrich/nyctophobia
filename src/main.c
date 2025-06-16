@@ -56,7 +56,6 @@ void main_loop(float dt, snz_Arena* frameArena, snzu_Input og_frameInputs, HMM_V
     }
 
     snzu_boxFillParent();
-    snzu_boxSetColor(HMM_V4(0, 1, 0, 1));
     snzu_boxScope() {
         float leftBarWidth = 100;
 
@@ -158,8 +157,8 @@ void main_loop(float dt, snz_Arena* frameArena, snzu_Input og_frameInputs, HMM_V
                 HMM_Mat4 proj = HMM_Orthographic_RH_NO(-halfHeight * aspect, halfHeight * aspect, -halfHeight, halfHeight, 0, 100000);
                 HMM_Mat4 view = HMM_LookAt_RH(HMM_V3(0, 0, radius * 2), HMM_V3(0, 0, 0), HMM_V3(0, 1, 0));
                 HMM_Mat4 model = HMM_Scale(HMM_V3(radius, radius, radius));
-                HMM_Vec4 color = HMM_V4(0, 1, 0, *zoomAnim);
-                ren3d_drawMesh(&main_sphereMesh, HMM_Mul(proj, view), model, color, HMM_V3(0, 0, 10));
+                model = HMM_Mul(HMM_Rotate_RH(time, HMM_V3(0, 1, 0)), model);
+                ren3d_drawMesh(&main_sphereMesh, HMM_Mul(proj, view), model);
             }
 
             snzr_callGLFnOrError(glBindFramebuffer(GL_FRAMEBUFFER, 0));
