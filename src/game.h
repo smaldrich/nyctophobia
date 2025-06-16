@@ -176,23 +176,26 @@ void gm_celestialUpdate(gm_Celestial* body, float time) {
     }
 }
 
-void gm_orbitLineDraw(HMM_Vec2 fadeOrigin, HMM_Vec2 origin, float radius, HMM_Mat4 vp, snz_Arena* scratch) {
+void gm_orbitLineDraw(float zoomAnim, HMM_Vec2 fadeOrigin, HMM_Vec2 origin, float radius, HMM_Mat4 vp, snz_Arena* scratch) {
     HMM_Vec4Slice points = SNZ_ARENA_PUSH_SLICE(scratch, 256, HMM_Vec4);
     for (int i = 0; i < points.count; i++) {
         float angle = i * (2 * HMM_PI / (points.count - 1));  // minus one to close the loop
-        points.elems[i].XY = HMM_RotateV2(HMM_V2(radius, 0), angle);
-        points.elems[i].XY = HMM_Add(points.elems[i].XY, origin);
+        HMM_Vec2 pos = HMM_RotateV2(HMM_V2(radius, 0), angle);
+        pos = HMM_Add(pos, origin);
+        points.elems[i] = HMM_V4(pos.X, pos.Y, 0, 1);
     }
+    HMM_Vec4 color = ui_colorOrbit;
+    color.A *= 1 - zoomAnim;
     snzr_drawLineFaded(
         points.elems, points.count,
-        ui_colorOrbit, ui_thicknessOrbit,
+        color, ui_thicknessOrbit,
         vp,
         HMM_V3(fadeOrigin.X, fadeOrigin.Y, 0), 0, radius * 1.8);
 }
 
 // expects GL ctx to be on a framebuffer
 // expects a valid snzu_Instance also
-void gm_celestialsBuild(gm_CelestialSlice celestials, _snzu_Box* parentBox, HMM_Mat4 vp, gm_Celestial** outTargetCelestial, snz_Arena* scratch) {
+void gm_celestialsBuild(gm_CelestialSlice celestials, _snzu_Box* parentBox, HMM_Mat4 vp, gm_Celestial** outTargetCelestial, float zoomAnim, snz_Arena* scratch) {
     HMM_Vec2 parentStart = parentBox->start;
     HMM_Vec2 parentSize = snzu_boxGetSizePtr(parentBox);
 
@@ -206,7 +209,10 @@ void gm_celestialsBuild(gm_CelestialSlice celestials, _snzu_Box* parentBox, HMM_
         gm_Celestial* c = &celestials.elems[i];
         snzu_boxNewF("%d", i);
         snzu_boxSetTexture(c->texture);
-        snzu_boxSetColor(c->color);
+
+        HMM_Vec4 color = c->color;
+        color.A *= 1 - zoomAnim;
+        snzu_boxSetColor(color);
 
         snzu_Interaction* inter = SNZU_USE_MEM(snzu_Interaction, "inter");
         snzu_boxSetInteractionOutput(inter, SNZU_IF_MOUSE_BUTTONS | SNZU_IF_HOVER);
@@ -230,7 +236,7 @@ void gm_celestialsBuild(gm_CelestialSlice celestials, _snzu_Box* parentBox, HMM_
         }
 
         for (gm_Celestial* child = c->firstChild; child; child = child->nextSibling) {
-            gm_orbitLineDraw(child->currentPosition, c->currentPosition, child->orbitRadius, vp, scratch);
+            gm_orbitLineDraw(zoomAnim, child->currentPosition, c->currentPosition, child->orbitRadius, vp, scratch);
         }
     }
 }

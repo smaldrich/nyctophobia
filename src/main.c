@@ -132,25 +132,34 @@ void main_loop(float dt, snz_Arena* frameArena, snzu_Input og_frameInputs, HMM_V
 
             HMM_Vec2 fbSize = HMM_V2(main_sceneFrameBuffer.texture.width, main_sceneFrameBuffer.texture.height);
             float aspect = fbSize.X / fbSize.Y;
-            float halfHeight = *cameraHeight / 2;
-
-            HMM_Mat4 proj = HMM_Orthographic_RH_NO(-aspect * halfHeight, aspect * halfHeight, -halfHeight, halfHeight, 0.0001, 100000);
-            HMM_Mat4 cameraView = HMM_Translate(HMM_V3(-cameraPosition->X, -cameraPosition->Y, 0));
-
-            snzr_callGLFnOrError(glBindFramebuffer(GL_FRAMEBUFFER, main_sceneFrameBuffer.glId));
-            snzr_callGLFnOrError(glViewport(0, 0, fbSize.X, fbSize.Y));
-            snzr_callGLFnOrError(glClearColor(ui_colorBackground.X, ui_colorBackground.Y, ui_colorBackground.Z, ui_colorBackground.W));
-            snzr_callGLFnOrError(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
-            gm_celestialsBuild(main_celestials, sceneBox, HMM_Mul(proj, cameraView), &main_targetCelestial, frameArena);
-            if (main_targetCelestial == main_rootCelestial) {
-                main_targetCelestial = NULL;
-            }
 
             {
-                HMM_Mat4 model = HMM_Rotate_RH(time, HMM_V3(0, 1, 1));
-                model = HMM_Mul(HMM_Scale(HMM_V3(5, 5, 5)), model);
-                HMM_Vec4 color = HMM_V4(0, 1, 0, 1);
-                ren3d_drawMesh(&main_sphereMesh, HMM_Mul(proj, cameraView), model, color, HMM_V3(0, 0, 10));
+                float halfHeight = *cameraHeight / 2;
+                HMM_Mat4 proj = HMM_Orthographic_RH_NO(-aspect * halfHeight, aspect * halfHeight, -halfHeight, halfHeight, 0, 100000);
+                HMM_Mat4 cameraView = HMM_Translate(HMM_V3(-cameraPosition->X, -cameraPosition->Y, 0));
+
+                snzr_callGLFnOrError(glBindFramebuffer(GL_FRAMEBUFFER, main_sceneFrameBuffer.glId));
+                snzr_callGLFnOrError(glViewport(0, 0, fbSize.X, fbSize.Y));
+                snzr_callGLFnOrError(glClearColor(ui_colorBackground.X, ui_colorBackground.Y, ui_colorBackground.Z, ui_colorBackground.W));
+                snzr_callGLFnOrError(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
+                glDepthMask(GL_FALSE); // so that orbit lines aren't drawn over planet render
+                gm_celestialsBuild(main_celestials, sceneBox, HMM_Mul(proj, cameraView), &main_targetCelestial, *zoomAnim, frameArena);
+                glDepthMask(GL_TRUE);
+                if (main_targetCelestial == main_rootCelestial) {
+                    main_targetCelestial = NULL;
+                    main_targetCelestialZoomed = false;
+                }
+            }
+
+            if (main_targetCelestialZoomed) {
+                // zoomed planet rendered at origin with radius = c->surfaceRadius
+                float radius = main_targetCelestial->surfaceRadius;
+                float halfHeight = radius * 1.5;
+                HMM_Mat4 proj = HMM_Orthographic_RH_NO(-halfHeight * aspect, halfHeight * aspect, -halfHeight, halfHeight, 0, 100000);
+                HMM_Mat4 view = HMM_LookAt_RH(HMM_V3(0, 0, radius * 2), HMM_V3(0, 0, 0), HMM_V3(0, 1, 0));
+                HMM_Mat4 model = HMM_Scale(HMM_V3(radius, radius, radius));
+                HMM_Vec4 color = HMM_V4(0, 1, 0, *zoomAnim);
+                ren3d_drawMesh(&main_sphereMesh, HMM_Mul(proj, view), model, color, HMM_V3(0, 0, 10));
             }
 
             snzr_callGLFnOrError(glBindFramebuffer(GL_FRAMEBUFFER, 0));
