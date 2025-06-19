@@ -127,7 +127,7 @@ ren3d_Mesh gm_sphereMeshInit(snz_Arena* scratch, int subdivs) {
     ren3d_Vert* finalVerts = SNZ_ARENA_PUSH_ARR(scratch, verts.count, ren3d_Vert);
     for (int i = 0; i < verts.count; i++) {
         finalVerts[i].pos = HMM_Norm(verts.elems[i]);
-        finalVerts[i].color = gm_materialColors[(i / 31) % GM_MK_COUNT];
+        finalVerts[i].color = gm_materialColors[(i / 49) % GM_MK_COUNT];
     }
     return ren3d_meshInit(finalVerts, verts.count, indicies.elems, (uint64_t)indicies.count);
 }

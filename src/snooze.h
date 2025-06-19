@@ -1,5 +1,164 @@
 #pragma once
 
+/*
+Snooze
+
+Utilities for programming apps in C.
+Single header file.
+
+Requires linking with GLAD (GL) and SDL2
+Includes HandmadeMath.h and stb_truetype for math and fonts
+Also includes several standard lib headers
+
+Meant to be something open to tinkering, and a lightweight
+way of doing UI that doesn't make itself the only way of displaying on screen.
+interop with raw GL is useful.
+
+SECCTIONS OF CODE:
+
+UTILITIES:
+    SNZ_LOG, SNZ_LOGF:          log functions that output to a file
+    SNZ_ASSERT, SNZ_ASSERTF,    assert functions that output to a file
+    snz_testPrint               pretty formatting to get color in your test results
+    SNZ_SLICE, SNZ_SLICE_NAMED  Macros that define a 'slice' struct.
+        Just contains ptr and length fields. Used in combo with arenas for some
+        convienent things. (see SNZ_ARENA_ARR_BEGIN)
+
+ARENAS:
+    Standard allocation solution so you never have to remember to free things.
+    Allocates a huge buffer up-front, increments a pointer when you allocate,
+    Resets the ptr to the beginning on free.
+
+    important functions:
+    snz_arenaInit - creates a new arena
+    SNZ_ARENA_PUSH - pushes one struct
+    SNZ_ARENA_PUSH_ARR - pushes an array of structs
+    snz_arenaFormatStr - takes a format string and args and 'printf's it into the arena.
+        i.e. formatting a number to string can be done: (uses same format strs as printf)
+        const char* str = snz_arenaFormatStr(arena, "%d", myNumber);
+    SNZ_ARENA_ARR_BEGIN - puts the arena into a mode that should only accept pushes of one type
+    SNZ_ARENA_ARR_END - collects everything you pushed and gives you a slice back
+        ^ these two are used for allocating arrays where you don't know the size up front
+    snz_arenaClear - clears everything allocated in the arena (still keeps that buffer around tho)
+
+    There are other functions that can be useful, but these are the ones you should know.
+
+RENDER:
+    Some basic openGL stuff to make the UI library work, occasionally useful in user code too.
+    Relatively self explanitory, but you probably need to know opengl to use it.
+
+    snzr_shaderInit: wrapper code to make a shader in openGL
+    snzr_textureInitRGBA: wrapper code to make a texture in openGL
+    snzr_frameBufferInit: wrapper code to make a framebuffere in openGL
+    snzr_drawRect: invokes the rectangle shader (FIXME: doing this for every rectangle in the UI is hella inefficent, look into call batching)
+
+    snzr_strSize: how large a string would be in pixels if rendered // this one is very useful
+    snzr_drawText: draws a string on screen
+    snzr_drawLine: draws a line on screen
+
+UI:
+    This is the complicated one.
+
+    initialization things: (the ui system just needs a few globals and has to do some work
+        before and after each frame, these fns let it do that.
+
+        snzu_instanceInit: new 'instance' (so you can run more than one 'screen' of UI in one app)
+        snzu_instanceSelect: makes following functions use an instance ^^^^^^^^^^^^^^^^^^^^^^^^^
+        snzu_frameStart: begin frame
+        snzu_frameDrawAndGenInteractions: ends frame, draws it to the screen
+
+    This UI library is based on 'boxes,' which are rectangles on the screen.
+    They nest inside each other, process inputs, and contain text
+    Every frame, you build a new tree of boxes, and the old one is destroyed.
+    Never retain pointers that the library gives you, cause they will be freed on the next frame.
+
+    snzu_boxNew:
+        creates a new box
+        The name string is not displayed, but should be unique to all siblings
+        By default, they are transparent. use snzu_boxSetColor to have it show up.
+    snzu_boxScope: nest boxes within the last box created
+
+    the following functions, and any others that start with snzu_boxXXXX
+    always apply to the *last created box.*
+    i.e. this is how you put text in the middle of the screen
+        snzu_boxNew("my box");
+        snzu_boxFillParent();
+        snzu_boxSetDisplayStr();
+
+    snzu_boxFillParent:
+        sets the box start and end to match the parents.
+        NOTE: this and all other functions that set a boxes size
+            don't have any magic behind them. There are a ton of them
+            and feel free to write more. Look at the definitions too.
+        NOTE: if you set a box to fill the parent, then change it's size again,
+            the box is no longer gonna fill the parent. Its a one time command.
+    snzu_boxSetColor: sets fill color of a box
+    snzu_boxSetDisplayStr: renders a string in the middle of the box
+    snzu_boxSetSizeFitText: does as the name suggests
+
+    SNZU_USE_MEM:
+        On call, it requires a currently selected (last created) box.
+        It makes sure that if you end up in it on the next frame,
+        it'll give you your variable back - value retained.
+        This is the most amount of 'magic' in the entire library.
+
+        i.e. if you want a variable to smoothly animate, do this:
+            float* const anim = SNZU_USE_MEM(float, "anim"); (default value is zero on first frame)
+            snzu_easeExp(anim, target, 10);
+        ease exp just nudges the value of anim towards target a little.
+        because the value is retained between frames, over time it'll look like an
+        animation.
+
+    snzu_useMemIsPrevNew: use to see if your last call to useMem is it's first allocation.
+        i.e, if you want to initialize to a non zero value:
+            float* const panelWidth = SNZU_USE_MEM(float, "panelWidth");
+            if(snzu_useMemIsPrevNew()) {
+                *panelWidth = 300;
+            }
+        Every frame after this you are free to modify panel width and it'll stay
+        the way it was left on the last frame.
+
+    snzu_boxSetInteractionOutput:
+        How you get inputs from a box. Inputs are registed when you call snzu_frameDrawAndGenInteractions.
+        Which means the Interaction struct you give this has to stay allocated until the next frame if you want the data.
+        Which means you should use usemem to keep track of it.
+        if you want to check if a box has been clicked:
+            snzu_boxNew("button");
+            // ... sizing here
+            snzu_Interaction* const inter = SNZU_USE_MEM(snzu_Interaction, "inter");
+            snzu_boxSetInteractionOutput(inter, SNZU_IF_MOUSE_BUTTONS); // means this box gets mouse events, and blocks the boxes behind it from getting them too.
+            if(inter.mouseActions[SNZU_MB_LEFT] == SNZU_ACT_DOWN) {
+                printf("just got clicked!");
+            }
+
+    These are some other sizing functions that come in handy often:
+        snzu_boxSetStart:
+        snzu_boxSetEnd:
+        snzu_boxSetSizeFromStart:
+        snzu_boxSetSizeFromEnd:
+        snzu_boxOrderChildrenInRowRecurse:
+        snzu_boxClipChildren: sets a flag so that when boxes are rendered, any
+            part of child boxes that pokes out is not rendered
+            Does not actually change the size of child boxes to force them within
+            the parent.
+
+MAIN LOOP HANDLING:
+    snz_main: wraps up SDL, openGL, snz initialization into something convinent.
+    i.e.:
+        int main() {
+            snz_main("this is the app", NULL, myInitFunc, myLoopFunc)
+            return 0;
+        }
+
+    snz_quit: used to exit the app from user code. Doesn't immediately quit, waits
+              until the next frame starts.
+
+UI COMPONENTS:
+    snzuc_button: a button implementation
+    snzuc_scrollArea: a scroll area implementation
+
+*/
+
 #include <assert.h>
 #include <ctype.h>
 #include <inttypes.h>
