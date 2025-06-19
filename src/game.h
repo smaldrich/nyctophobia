@@ -209,6 +209,12 @@ void gm_orbitLineDraw(float zoomAnim, HMM_Vec2 fadeOrigin, HMM_Vec2 origin, floa
 // expects GL ctx to be on a framebuffer
 // expects a valid snzu_Instance also
 void gm_celestialsBuild(gm_CelestialSlice celestials, _snzu_Box* parentBox, HMM_Mat4 vp, gm_Celestial** outTargetCelestial, float zoomAnim, snz_Arena* scratch) {
+    // we are zoomed in, stop rendering
+    // not just for perf but also so that planets don't block ui events while not being visible
+    if (zoomAnim > 0.99999) {
+        return;
+    }
+
     HMM_Vec2 parentStart = parentBox->start;
     HMM_Vec2 parentSize = snzu_boxGetSizePtr(parentBox);
 
@@ -220,7 +226,7 @@ void gm_celestialsBuild(gm_CelestialSlice celestials, _snzu_Box* parentBox, HMM_
 
     for (int i = 0; i < celestials.count; i++) {
         gm_Celestial* c = &celestials.elems[i];
-        snzu_boxNewF("%d", i);
+        snzu_boxNewF("%d planet in scene", i);
         snzu_boxSetTexture(c->texture);
 
         HMM_Vec4 color = c->color;

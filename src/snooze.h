@@ -6,7 +6,7 @@ Snooze
 Utilities for programming apps in C.
 Single header file.
 
-Requires linking with GLAD (GL) and SDL2
+Requires linking with GLAD (OpenGL) and SDL2
 Includes HandmadeMath.h and stb_truetype for math and fonts
 Also includes several standard lib headers
 
@@ -17,7 +17,7 @@ interop with raw GL is useful.
 SECCTIONS OF CODE:
 
 UTILITIES:
-    SNZ_LOG, SNZ_LOGF:          log functions that output to a file
+    SNZ_LOG, SNZ_LOGF:          log functions that output to a file & console (std out)
     SNZ_ASSERT, SNZ_ASSERTF,    assert functions that output to a file
     snz_testPrint               pretty formatting to get color in your test results
     SNZ_SLICE, SNZ_SLICE_NAMED  Macros that define a 'slice' struct.
@@ -62,7 +62,7 @@ UI:
     initialization things: (the ui system just needs a few globals and has to do some work
         before and after each frame, these fns let it do that.
 
-        snzu_instanceInit: new 'instance' (so you can run more than one 'screen' of UI in one app)
+        snzu_instanceInit: new 'instance' (so you can run more than one 'screen' of UI in one app) (basically a copy of all the global variables funcs need)
         snzu_instanceSelect: makes following functions use an instance ^^^^^^^^^^^^^^^^^^^^^^^^^
         snzu_frameStart: begin frame
         snzu_frameDrawAndGenInteractions: ends frame, draws it to the screen
@@ -1691,6 +1691,14 @@ void snzu_boxSetDisplayStrLen(const snzr_Font* font, HMM_Vec4 color, const char*
 // font must also last
 void snzu_boxSetDisplayStr(const snzr_Font* font, HMM_Vec4 color, const char* str) {
     snzu_boxSetDisplayStrLen(font, color, str, strlen(str));
+}
+
+void snzu_boxSetDisplayStrF(const snzr_Font* font, HMM_Vec4 color, const char* fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+    const char* formatted = snz_arenaFormatStrV(_snzu_instance->frameArena, fmt, args);
+    snzu_boxSetDisplayStrLen(font, color, formatted, strlen(formatted));
+    va_end(args);
 }
 
 void snzu_boxSetDisplayStrMode(float height, bool removeSnap) {

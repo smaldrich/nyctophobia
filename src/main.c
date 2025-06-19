@@ -62,6 +62,8 @@ void main_loop(float dt, snz_Arena* frameArena, snzu_Input og_frameInputs, HMM_V
         _snzu_Box* sceneBox = snzu_boxNew("main scene");
         snzu_boxFillParent();
         snzu_boxSetSizeFromEndAx(SNZU_AX_X, og_screenSize.X - leftBarWidth); // FIXME: size remaining fn
+        snzu_Interaction* inter = SNZU_USE_MEM(snzu_Interaction, "inter");
+        snzu_boxSetInteractionOutput(inter, SNZU_IF_HOVER | SNZU_IF_MOUSE_BUTTONS | SNZU_IF_MOUSE_SCROLL);
         {
             HMM_Vec2 size = snzu_boxGetSize();
             if (main_sceneFrameBuffer.texture.width != size.X ||
@@ -73,9 +75,6 @@ void main_loop(float dt, snz_Arena* frameArena, snzu_Input og_frameInputs, HMM_V
                 main_sceneFrameBuffer = snzr_frameBufferInit(t);
             }
             snzu_boxSetTexture(main_sceneFrameBuffer.texture);
-
-            snzu_Interaction* inter = SNZU_USE_MEM(snzu_Interaction, "inter");
-            snzu_boxSetInteractionOutput(inter, SNZU_IF_NONE);
 
             if (snzu_isNothingFocused()) {
                 char inputChar = inter->keyChars[0];
@@ -151,16 +150,33 @@ void main_loop(float dt, snz_Arena* frameArena, snzu_Input og_frameInputs, HMM_V
             }
 
             if (main_targetCelestialZoomed) {
+                HMM_Vec2* const prev = SNZU_USE_MEM(HMM_Vec2, "prevMouse");// FIXME: build in a moue delta for drag into snooze
+                HMM_Vec2 delta = { 0 };
+                if (inter->dragged) {
+                    delta = HMM_Sub(inter->mousePosGlobal, *prev);
+                }
+                *prev = inter->mousePosGlobal;
+
+                // .X = angle in rads around the X axis
+                HMM_Vec2* const cameraViewAngles = SNZU_USE_MEM(HMM_Vec2, "cameraViewAngles");
+                cameraViewAngles->X -= delta.Y * 0.005;
+                cameraViewAngles->Y -= delta.X * 0.005;
+                cameraViewAngles->X = SNZ_MIN(cameraViewAngles->X, HMM_AngleDeg(90));
+                cameraViewAngles->X = SNZ_MAX(cameraViewAngles->X, HMM_AngleDeg(-90));
+
                 // zoomed planet rendered at origin with radius = c->surfaceRadius
                 float radius = main_targetCelestial->surfaceRadius;
                 float halfHeight = radius * 1.5;
                 HMM_Mat4 proj = HMM_Orthographic_RH_NO(-halfHeight * aspect, halfHeight * aspect, -halfHeight, halfHeight, 0, 100000);
-                HMM_Mat4 view = HMM_LookAt_RH(HMM_V3(0, 0, radius * 2), HMM_V3(0, 0, 0), HMM_V3(0, 1, 0));
+
+                HMM_Vec3 cameraPosition = HMM_V3(0, 0, radius * 2);
+                cameraPosition = HMM_RotateV3AxisAngle_RH(cameraPosition, HMM_V3(1, 0, 0), cameraViewAngles->X);
+                cameraPosition = HMM_RotateV3AxisAngle_RH(cameraPosition, HMM_V3(0, 1, 0), cameraViewAngles->Y);
+                HMM_Mat4 view = HMM_LookAt_RH(cameraPosition, HMM_V3(0, 0, 0), HMM_V3(0, 1, 0));
+
                 HMM_Mat4 model = HMM_Scale(HMM_V3(radius, radius, radius));
-                model = HMM_Mul(HMM_Rotate_RH(time, HMM_V3(0, 1, 0)), model);
                 ren3d_drawMesh(&main_sphereMesh, HMM_Mul(proj, view), model);
             }
-
             snzr_callGLFnOrError(glBindFramebuffer(GL_FRAMEBUFFER, 0));
             snzr_callGLFnOrError(glViewport(0, 0, og_screenSize.X, og_screenSize.Y)); // FIXME: AHHHHHHHHHHH HAVE FRAME DRAW SET VIEPORT WHY DIDN"T U DO THAT BEFORE
         } // end main scene
@@ -186,7 +202,7 @@ void main_loop(float dt, snz_Arena* frameArena, snzu_Input og_frameInputs, HMM_V
                 for (int i = 0; i < main_celestials.count; i++) {
                     gm_Celestial* c = &main_celestials.elems[i];
                     // main box acts as padding
-                    snzu_boxNewF("%i", i);
+                    snzu_boxNewF("%i left icon", i);
                     snzu_Interaction* inter = SNZU_USE_MEM(snzu_Interaction, "inter");
                     snzu_boxSetInteractionOutput(inter, SNZU_IF_MOUSE_BUTTONS | SNZU_IF_HOVER);
                     if (inter->mouseActions[SNZU_MB_LEFT] == SNZU_ACT_DOWN) { // FIXME: techinically wrong, happening late in the frame
