@@ -27,7 +27,7 @@ void main_init(snz_Arena* scratch, SDL_Window* window) {
     main_fontArena = snz_arenaInit(10000000, "main_fontArena");
     main_lifetimeArena = snz_arenaInit(10000000, "main_lifetimeArena");
 
-    ui_init(&main_fontArena, scratch);
+    ui_init(&main_fontArena, scratch, scratch);
     ren3d_init(scratch);
 
     SNZ_ARENA_ARR_BEGIN(&main_lifetimeArena, gm_Celestial);
@@ -164,6 +164,9 @@ void main_loop(float dt, snz_Arena* frameArena, snzu_Input og_frameInputs, HMM_V
                 cameraViewAngles->X = SNZ_MIN(cameraViewAngles->X, HMM_AngleDeg(90));
                 cameraViewAngles->X = SNZ_MAX(cameraViewAngles->X, HMM_AngleDeg(-90));
 
+                ui_debugValueF("cameraX", "%f", cameraViewAngles->X);
+                ui_debugValueF("cameraY", "%f", cameraViewAngles->Y);
+
                 // zoomed planet rendered at origin with radius = c->surfaceRadius
                 float radius = main_targetCelestial->surfaceRadius;
                 float halfHeight = radius * 1.5;
@@ -259,6 +262,7 @@ void main_loop(float dt, snz_Arena* frameArena, snzu_Input og_frameInputs, HMM_V
         } // end left bar
     }
 
+    ui_debugValuesBuild();
     HMM_Mat4 uiVP = HMM_Orthographic_RH_NO(0, og_screenSize.X, og_screenSize.Y, 0, 0.0001, 100000);
     snzu_frameDrawAndGenInteractions(og_frameInputs, uiVP);
 }

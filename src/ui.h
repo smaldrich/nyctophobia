@@ -28,7 +28,19 @@ snzr_Texture ui_texFromFile(const char* path) {
     return tex;
 }
 
-void ui_init(snz_Arena* fontArena, snz_Arena* scratch) {
+typedef struct _ui_DebugValue _ui_DebugValue;
+struct _ui_DebugValue {
+    const char* name;
+    const char* value;
+    _ui_DebugValue* next;
+};
+
+struct {
+    _ui_DebugValue* firstValue;
+    snz_Arena* arena;
+} _ui_debugGlobs;
+
+void ui_init(snz_Arena* fontArena, snz_Arena* scratch, snz_Arena* debugDataArena) {
     stbi_set_flip_vertically_on_load(true);
     ui_labelFont = snzr_fontInit(fontArena, scratch, "res/fonts/SpaceMono-Regular.ttf", 24);
 
@@ -38,6 +50,8 @@ void ui_init(snz_Arena* fontArena, snz_Arena* scratch) {
 
     ui_colorAccent = HMM_V4(0.18, 0.20, 0.4, 1.0f);
     ui_colorHoveredBackground = HMM_V4(0.4, 0.3, 0.07, 1.0f);
+
+    _ui_debugGlobs.arena = debugDataArena;
 }
 
 float ui_hoverAnim(snzu_Interaction* inter) {
@@ -659,4 +673,41 @@ void ui_selectionRegionAnimate(ui_SelectionRegion* region, ui_SelectionStatus* f
         snzu_easeExp(&s->state->hoverAnim, s->hovered && !region->dragging, 15);
         snzu_easeExp(&s->state->selectionAnim, s->state->selected || s->state->tempSelected, 15);
     }
+}
+
+void ui_debugValueF(const char* boxTag, const char* format, ...) {
+    va_list args;
+    va_start(args, format);
+    _ui_DebugValue* value = SNZ_ARENA_PUSH(_ui_debugGlobs.arena, _ui_DebugValue);
+    value->name = boxTag;
+    value->value = snz_arenaFormatStrV(_ui_debugGlobs.arena, format, args);
+    va_end(args);
+
+    value->next = _ui_debugGlobs.firstValue;
+    _ui_debugGlobs.firstValue = value;
+}
+
+void ui_debugValuesBuild() {
+    if (!_ui_debugGlobs.firstValue) {
+        return;
+    }
+
+    snzu_boxNew("debug value table");
+    snzu_boxSetColor(ui_colorBackground);
+    snzu_boxSetBorder(2, ui_colorText);
+    snzu_boxScope() {
+        snzu_boxNew("title");
+        snzu_boxSetDisplayStr(&ui_labelFont, ui_colorText, "Debug values:");
+        snzu_boxSetSizeFitText(2 * ui_padding);
+
+        for (_ui_DebugValue* value = _ui_debugGlobs.firstValue; value; value = value->next) {
+            snzu_boxNew(value->name);
+            snzu_boxSetDisplayStrF(&ui_labelFont, ui_colorText, "%s: %20s", value->name, value->value);
+            snzu_boxSetSizeFitText(ui_padding);
+        }
+    }
+    snzu_boxSetStart(HMM_V2(20, 20));
+    snzu_boxOrderChildrenInRowRecurse(ui_padding, SNZU_AX_Y, SNZU_ALIGN_LEFT);
+    snzu_boxSetSizeFitChildren();
+    _ui_debugGlobs.firstValue = NULL;
 }

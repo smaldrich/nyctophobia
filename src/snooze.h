@@ -1693,11 +1693,15 @@ void snzu_boxSetDisplayStr(const snzr_Font* font, HMM_Vec4 color, const char* st
     snzu_boxSetDisplayStrLen(font, color, str, strlen(str));
 }
 
+void snzu_boxSetDisplayStrV(const snzr_Font* font, HMM_Vec4 color, const char* fmt, va_list args) {
+    const char* formatted = snz_arenaFormatStrV(_snzu_instance->frameArena, fmt, args);
+    snzu_boxSetDisplayStrLen(font, color, formatted, strlen(formatted));
+}
+
 void snzu_boxSetDisplayStrF(const snzr_Font* font, HMM_Vec4 color, const char* fmt, ...) {
     va_list args;
     va_start(args, fmt);
-    const char* formatted = snz_arenaFormatStrV(_snzu_instance->frameArena, fmt, args);
-    snzu_boxSetDisplayStrLen(font, color, formatted, strlen(formatted));
+    snzu_boxSetDisplayStrV(font, color, fmt, args);
     va_end(args);
 }
 
