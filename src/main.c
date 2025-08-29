@@ -1,4 +1,3 @@
-
 #include "snooze.h"
 #include "ui.h"
 #include "ser.h"
@@ -265,9 +264,4 @@ void main_loop(float dt, snz_Arena* frameArena, snzu_Input og_frameInputs, HMM_V
     ui_debugValuesBuild();
     HMM_Mat4 uiVP = HMM_Orthographic_RH_NO(0, og_screenSize.X, og_screenSize.Y, 0, 0.0001, 100000);
     snzu_frameDrawAndGenInteractions(og_frameInputs, uiVP);
-}
-
-int main() {
-    snz_main("nyctophobia v0", NULL, main_init, main_loop);
-    return EXIT_SUCCESS;
 }
